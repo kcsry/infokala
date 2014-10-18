@@ -7,6 +7,8 @@ from django.views.generic import View
 
 from typevalidator import validate
 
+from .models import Message, MessageType
+
 
 JSON_FORBIDDEN = json.dumps(dict(
     status=403,
@@ -80,7 +82,8 @@ MESSAGE_SCHEMA = dict(
 
 class MessagesView(ApiView):
     def _get(self, request, event):
-        return 200, dict(hello="world")
+        messages = Message.objects.filter(denorm_event_slug=event.slug).order_by('created_at')
+        return 200, [msg.as_dict() for msg in messages]
 
     def _post(self, request, event, data):
         if not validate(MESSAGE_SCHEMA, data):
@@ -88,15 +91,14 @@ class MessagesView(ApiView):
 
         message_type = get_object_or_404(MessageType,
             event_slug=event.slug,
-            event=data['message_type'],
+            slug=data['message_type'],
         )
 
         message = Message.objects.create(
-            author=author,
-            message=message,
+            author=data['author'],
+            message=data['message'],
             message_type=message_type,
             created_by=request.user,
         )
 
-
-        return 200, data
+        return 200, message.as_dict()
