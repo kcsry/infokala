@@ -9,8 +9,10 @@
     pip install -r requirements.txt
     python manage.py migrate
     python manage.py setup_infokala_test_app
-    python manage.py createsuperuser
     python manage.py runserver
+    open http://localhost:8000
+
+`setup_infokala_test_app` created an user called `mahti` with the password `mahti`.
 
 ## License
 
