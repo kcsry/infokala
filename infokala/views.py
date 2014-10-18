@@ -86,10 +86,16 @@ class MessagesView(ApiView):
         if not validate(MESSAGE_SCHEMA, data):
             return 400, JSON_BAD_REQUEST
 
-        message_type = get_object_or_404(MessageType, pk=data['message_type'])
+        message_type = get_object_or_404(MessageType,
+            event_slug=event.slug,
+            event=data['message_type'],
+        )
+
         message = Message.objects.create(
+            author=author,
+            message=message,
             message_type=message_type,
-            user=request.user,
+            created_by=request.user,
         )
 
 

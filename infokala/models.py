@@ -69,21 +69,28 @@ class MessageType(models.Model):
 
 class Message(models.Model):
     message_type = models.ForeignKey(MessageType)
+    message = models.TextField(verbose_name=u'Viesti')
+    author = models.CharField(verbose_name=u'Kirjoittaja', max_length=128)
+
     state = models.ForeignKey(State)
 
-    user = models.ForeignKey('auth.User',
+    created_by = models.ForeignKey('auth.User',
         verbose_name=u'Lisääjä',
         null=True,
         blank=True,
+        related_name='+',
     )
-    author = models.CharField(verbose_name=u'Kirjoittaja', max_length=128)
+    updated_by = models.ForeignKey('auth.User',
+        verbose_name=u'Viimeisin muokkaaja',
+        null=True,
+        blank=True,
+        related_name='+',
+    )
 
     denorm_event_slug = models.CharField(verbose_name=u'Tunniste', max_length=64)
 
     created_at = models.DateTimeField(verbose_name=u'Lisäysaika', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name=u'Muokkausaika', auto_now=True)
-
-    message = models.TextField(verbose_name=u'Viesti')
 
     def save(self, *args, **kwargs):
         if self.state is None and self.message_type is not None:
