@@ -12,7 +12,6 @@
     python manage.py createsuperuser
     python manage.py runserver
 
-
 ## License
 
     The MIT License (MIT)
