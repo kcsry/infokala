@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import RedirectView
 
-from infokala.views import MessagesView
+from infokala.views import MessagesView, ConfigView
 
 urlpatterns = patterns('',
     url(r'^$', RedirectView.as_view(url='/events/test/messages')),
@@ -17,4 +17,8 @@ urlpatterns = patterns('',
         csrf_exempt(MessagesView.as_view()),
         name='infokala_messages_view',
     ),
+    url(r'^api/v1/events/(?P<event_slug>[a-z0-9-]+)/config',
+        csrf_exempt(ConfigView.as_view()),
+        name='infokala_config_view',
+    ),    
 )

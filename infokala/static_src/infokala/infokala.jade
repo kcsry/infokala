@@ -2,8 +2,17 @@ doctype html
 html
   head
     title Infokala
-    script(defer, src='/static/infokala/infokala.js')
+    link(rel='stylesheet', href='/static/infokala/bootstrap.min.css')
     link(rel='stylesheet', href='/static/infokala/infokala.css')
+    script(defer, src='/static/infokala/infokala.js')
   body
-    h1 Infokala
-    p Hello, World!
+    .navbar.navbar-default.navbar-static-top
+      .container
+        .navbar-header
+          a.navbar-brand(href) Infokala
+
+    ul(data-bind='foreach: messages')
+      li
+        span(data-bind='text: author')
+        span(data-bind='text: message')
+        span(data-bind='text: $parent.messageTypes[messageType].name')

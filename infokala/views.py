@@ -102,3 +102,16 @@ class MessagesView(ApiView):
         )
 
         return 200, message.as_dict()
+
+
+class ConfigView(ApiView):
+    def _get(self, request, event):
+        message_types = MessageType.objects.filter(event_slug=event.slug)
+
+        return 200, dict(
+            event=dict(
+                slug=event.slug,
+                name=event.name,
+            ),
+            messageTypes=dict((mt.slug, mt.as_dict()) for mt in message_types)
+        )

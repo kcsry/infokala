@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Infokala</title>
+    <link rel="stylesheet" href="/static/infokala/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/infokala/infokala.css">
+    <script defer src="/static/infokala/infokala.js"></script>
+  </head>
+  <body>
+    <div class="navbar navbar-default navbar-static-top">
+      <div class="container">
+        <div class="navbar-header"><a href class="navbar-brand">Infokala</a></div>
+      </div>
+    </div>
+    <ul data-bind="foreach: messages">
+      <li><span data-bind="text: author"></span><span data-bind="text: message"></span><span data-bind="text: $parent.messageTypes[messageType].name"></span></li>
+    </ul>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 *.pyc
 .idea/
 *.sqlite3
-static/
+/static/
 build/
 nohup.out
 pip-log.txt

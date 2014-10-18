@@ -36,10 +36,16 @@
   },
   "browser": {
     "jquery": "./bower_components/jquery/dist/jquery.min.js",
-    "knockout": "./bower_components/knockout/dist/knockout.js"
+    "knockout": "./bower_components/knockout/dist/knockout.js",
+    "knockout-mapping": "./bower_components/knockout-mapping/knockout.mapping.js",
+    "bootstrap": "./bower_components/bootstrap/dist/js/bootstrap.min.js"
   },
   "browserify-shim": {
-    "jquery": "jQuery"
+    "jquery": "jQuery",
+    "bootstrap": {
+      "depends": "jquery:$",
+      "exports": "jQuery"
+    }
   },
   "browserify": {
     "transform": [

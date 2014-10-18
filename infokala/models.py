@@ -70,6 +70,11 @@ class MessageType(models.Model):
     def event(self):
         return settings.INFOKALA_GET_EVENT_OR_404(self.event_slug) if self.event_slug else None
 
+    def as_dict(self):
+        return dict(
+            name=self.name,
+            slug=self.slug,
+        )
 
 class Message(models.Model):
     message_type = models.ForeignKey(MessageType, verbose_name=u'viestityyppi', related_name='message_set')
@@ -120,10 +125,10 @@ class Message(models.Model):
 
     def as_dict(self):
         return dict(
-            message_type=self.message_type.slug,
+            messageType=self.message_type.slug,
             message=self.message,
             author=self.author,
-            created_by=self.created_by.username if self.created_by else None,
-            updated_by=self.updated_by.username if self.updated_by else None,
+            createdBy=self.created_by.username if self.created_by else None,
+            updatedBy=self.updated_by.username if self.updated_by else None,
             state=self.state.slug if self.state_id else None,
         )
