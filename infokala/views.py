@@ -113,5 +113,9 @@ class ConfigView(ApiView):
                 slug=event.slug,
                 name=event.name,
             ),
-            messageTypes=dict((mt.slug, mt.as_dict()) for mt in message_types)
+            messageTypes=dict((mt.slug, mt.as_dict()) for mt in message_types),
+            user=dict(
+                displayName=request.user.get_full_name() or request.user.username,
+                username=request.user.username
+            )
         )

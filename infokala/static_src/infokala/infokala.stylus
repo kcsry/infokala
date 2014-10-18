@@ -1,0 +1,6 @@
+.message
+  padding-bottom 0.5em
+  padding-top 0.5em
+
+.message + .message
+  border-top 1px solid #eee

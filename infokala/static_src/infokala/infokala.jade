@@ -10,9 +10,20 @@ html
       .container
         .navbar-header
           a.navbar-brand(href) Infokala
+        .collapse.navbar-collapse#base-navbar-collapse
+          ul.nav.navbar-nav
+          ul.nav.navbar-nav.navbar-right
+            li.dropdown
+              a.dropdown-toggle(href, data-toggle='dropdown')
+                span(data-bind='text: user.displayName')
+                b.caret
+              ul.dropdown-menu
+                li: a(href='/logout') Kirjaudu ulos
 
-    ul(data-bind='foreach: messages')
-      li
-        span(data-bind='text: author')
-        span(data-bind='text: message')
-        span(data-bind='text: $parent.messageTypes[messageType].name')
+    .container(data-bind='foreach: messages')
+      .message
+        .row
+          small.col-md-12.text-muted 21:03:15
+        .row
+          strong.col-md-1(data-bind='text: author')
+          .col-md-11(data-bind='text: message')
