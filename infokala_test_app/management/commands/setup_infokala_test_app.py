@@ -1,10 +1,22 @@
+# encoding: utf-8
+
 from django.core.management.base import BaseCommand, CommandError
 
 
 class Command(BaseCommand):
     def handle(self, *args, **opts):
         from infokala_test_app.models import Event
-        from infokala.models import Workflow, State, MessageType
+        from infokala.models import Workflow, State, MessageType, Message
+        from django.contrib.auth.models import User
+
+        user, created = User.objects.get_or_create(
+            username='mahti',
+            is_superuser=True,
+            is_staff=True,
+        )
+        if created:
+            user.set_password('mahti')
+            user.save()
 
         event, unused = Event.objects.get_or_create(
             slug='test',
@@ -45,12 +57,12 @@ class Command(BaseCommand):
         for name, slug, workflow in [
             (u'Löydetty', 'found', lost_and_found_workflow),
             (u'Kateissa', 'missing', basic_workflow),
-            (u'Tapahtuma', 'event', basic_workflow),
             (u'Tehtävä', 'task', basic_workflow),
             (u'Kysymys', 'question', basic_workflow),
             (u'Ongelma', 'problem', basic_workflow),
+            (u'Tapahtuma', 'event', basic_workflow),
         ]:
-            MessageType.objects.get_or_create(
+            message_type, unused = MessageType.objects.get_or_create(
                 event_slug=event.slug,
                 slug=slug,
                 defaults=dict(
@@ -58,3 +70,15 @@ class Command(BaseCommand):
                     workflow=workflow,
                 ),
             )
+
+        if not Message.objects.exists():
+            for author, example_message in [
+                (u'Korppu', u'INFOSSA ON CORGI :333333'),
+                (u'Japsu', u'apua, tuun sinne :3'),
+            ]:
+                Message(
+                    message_type=message_type,
+                    message=example_message,
+                    author=author,
+                    created_by=user,
+                ).save()

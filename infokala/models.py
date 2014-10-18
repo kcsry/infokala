@@ -72,7 +72,7 @@ class Message(models.Model):
     message = models.TextField(verbose_name=u'Viesti')
     author = models.CharField(verbose_name=u'Kirjoittaja', max_length=128)
 
-    state = models.ForeignKey(State)
+    state = models.ForeignKey(State, null=True, blank=True)
 
     created_by = models.ForeignKey('auth.User',
         verbose_name=u'Lisääjä',
@@ -87,22 +87,10 @@ class Message(models.Model):
         related_name='+',
     )
 
-    denorm_event_slug = models.CharField(verbose_name=u'Tunniste', max_length=64)
+    denorm_event_slug = models.CharField(verbose_name=u'Tapahtuman tunniste', max_length=64)
 
     created_at = models.DateTimeField(verbose_name=u'Lisäysaika', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name=u'Muokkausaika', auto_now=True)
-
-    def save(self, *args, **kwargs):
-        if self.state is None and self.message_type is not None:
-            self.state = self.message_type.initial_state
-
-        if self.denorm_event_slug is None and self.message_type is not None:
-            self.denorm_event_slug = self.message_type.event_slug
-
-        if not self.author and self.user is not None:
-            self.author = self.user.username
-
-        return super(Message, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = u'Viesti'
@@ -113,3 +101,24 @@ class Message(models.Model):
 
     def __unicode__(self):
         return self.message
+
+    def save(self, *args, **kwargs):
+        if self.state is None and self.message_type is not None:
+            self.state = self.message_type.workflow.initial_state
+
+        if not self.denorm_event_slug and self.message_type is not None:
+            self.denorm_event_slug = self.message_type.event_slug
+
+        if not self.author and self.user is not None:
+            self.author = self.user.username
+
+        return super(Message, self).save(*args, **kwargs)
+
+    def as_dict(self):
+        return dict(
+            message_type=self.message_type.slug,
+            message=self.message,
+            author=self.author,
+            created_by=self.created_by.username if self.created_by else None,
+            updated_by=self.updated_by.username if self.updated_by else None,
+        )

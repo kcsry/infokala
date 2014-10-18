@@ -18,7 +18,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('message', models.TextField(verbose_name='Viesti')),
                 ('author', models.CharField(max_length=128, verbose_name='Kirjoittaja')),
-                ('denorm_event_slug', models.CharField(max_length=64, verbose_name='Tunniste')),
+                ('denorm_event_slug', models.CharField(max_length=64, verbose_name='Tapahtuman tunniste')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Lis\xe4ysaika')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Muokkausaika')),
                 ('created_by', models.ForeignKey(related_name=b'+', verbose_name='Lis\xe4\xe4j\xe4', blank=True, to=settings.AUTH_USER_MODEL, null=True)),
@@ -104,7 +104,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='message',
             name='state',
-            field=models.ForeignKey(to='infokala.State'),
+            field=models.ForeignKey(blank=True, to='infokala.State', null=True),
             preserve_default=True,
         ),
         migrations.AddField(
