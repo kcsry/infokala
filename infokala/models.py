@@ -32,7 +32,7 @@ class State(models.Model):
     slug = models.CharField(verbose_name=u'tunniste', max_length=64)
     initial = models.BooleanField(
         verbose_name=u'alkutila',
-        help_text=u'Tämä tila asetetaan uuden viestin tilaksi.',
+        help_text=u'Tämä tila asetetaan uuden viestin tilaksi. Valitse kussakin työnkulussa tasan yksi tila alkutilaksi.',
         default=False
     )
 
