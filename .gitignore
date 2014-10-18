@@ -1,7 +1,7 @@
 *.pyc
 .idea/
 *.sqlite3
-/static/
+static/
 build/
 nohup.out
 pip-log.txt
@@ -10,3 +10,5 @@ virtualenv/
 tmp/
 .sublime-*
 node_modules/
+bower_components/
+*.egg-info/
