@@ -2,11 +2,13 @@ from django.conf import settings
 from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.base import RedirectView
 
 from infokala.views import MessagesView
 
 urlpatterns = patterns('',
-    url(r'^events/[a-z0-9-]+/log/?$',
+    url(r'^$', RedirectView.as_view(url='/events/test/messages')),
+    url(r'^events/[a-z0-9-]+/messages/?$',
         'django.contrib.staticfiles.views.serve',
         kwargs=dict(path='infokala/infokala.html'),
     ),

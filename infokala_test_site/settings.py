@@ -1,5 +1,9 @@
 import os
-BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+
+def mkpath(*parts):
+    return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', *parts))
+
+BASE_DIR = mkpath()
 
 SECRET_KEY = '6g*1v8@jh5dohgl6%n+9l9%k9g3__9#5@7bptzawuis-4*git#'
 
@@ -48,6 +52,7 @@ USE_L10N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+STATIC_ROOT = mkpath('static')
 
 def get_event(slug):
     from django.shortcuts import get_object_or_404
