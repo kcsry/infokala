@@ -2,6 +2,8 @@
 
 ## Getting started
 
+Assuming you have Python 2.7, `pip` and `virtualenv` installed.
+
     git clone git@github.com:japsu/infokala
     virtualenv venv-infokala
     source venv-infokala/bin/activate
@@ -13,6 +15,15 @@
     open http://localhost:8000
 
 `setup_infokala_test_app` created an user called `mahti` with the password `mahti`.
+
+## Frontend development
+
+Frontend development tools require Node.JS (0.10.x). These are needed only during development, not runtime.
+
+    npm install
+    npm start
+
+This starts a server on `localhost:8000` and watches for changes to files under `infokala/static_src` compiling them to `infokala/static`.
 
 ## License
 
