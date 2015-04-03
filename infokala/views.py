@@ -97,8 +97,6 @@ class MessagesView(ApiView):
             except ValueError:
                 return 400, JSON_BAD_REQUEST
 
-            print since
-
             criteria.update(created_at__gt=since)
 
         messages = Message.objects.filter(**criteria).order_by('created_at')
