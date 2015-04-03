@@ -1,5 +1,6 @@
 Promise = require 'bluebird'
 ko = require 'knockout'
+_ = require 'lodash'
 
 {getAllMessages, getMessagesSince, getConfig, sendMessage} = require './message_service.coffee'
 
@@ -16,16 +17,29 @@ module.exports = class MainViewModel
     @author = ko.observable ""
     @message = ko.observable ""
     @messageType = ko.observable ""
+    @messageTypes = ko.observable []
+    @messageTypeFilters = ko.observable []
+    @activeFilter = ko.observable slug: null
 
-    # XXX hardcoded
-    @messageTypes = ko.observableArray [
-      'event'
-    ]
+    @visibleMessages = ko.computed =>
+      console?.log 'visibleMessages'
+      if @activeFilter()?.slug
+        _.filter @messages(), messageType: @activeFilter()?.slug
+      else
+        @messages()
 
     Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
-      @messageTypes = config.messageTypes
       @user config.user
       @author config.user.displayName
+
+      @messageTypes config.messageTypes
+      @messageTypeFilters [
+        name: 'Kaikki'
+        slug: null
+        workflow: null
+      ].concat config.messageTypes
+      @messageType config.defaultMessageType
+
       @newMessages messages
       @setupPolling()
 
@@ -35,6 +49,10 @@ module.exports = class MainViewModel
       @latestMessageTimestamp = message.createdAt
       window.scrollTo 0, document.body.scrollHeight
 
+  changeFilter: (newFilter) =>
+    console.log 'changeFilter', newFilter
+    @activeFilter newFilter
+
   setupPolling: =>
     window.setInterval @refresh, refreshMilliseconds
 
@@ -42,8 +60,11 @@ module.exports = class MainViewModel
     getMessagesSince(@latestMessageTimestamp).then @newMessages
 
   sendMessage: (formElement) =>
+    return if @message() == ""
     sendMessage(
-      messageType: 'event' # XXX hardcoded
+      messageType: @messageType()
       author: @author()
       message: @message()
-    ).then @refresh
+    ).then =>
+      @message ""
+      @refresh()

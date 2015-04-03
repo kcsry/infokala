@@ -2,4 +2,4 @@ ko = require 'knockout'
 
 MainViewModel = require './main_view_model.coffee'
 
-ko.applyBindings new MainViewModel
+ko.applyBindings (window.infokalaMainViewModel = new MainViewModel)

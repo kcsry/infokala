@@ -12,7 +12,9 @@ html
         .navbar-header
           a.navbar-brand(href) Infokala
         .collapse.navbar-collapse#base-navbar-collapse
-          ul.nav.navbar-nav
+          ul.nav.navbar-nav(data-bind='foreach: messageTypeFilters')
+            li(data-bind='css: { active: slug == $parent.activeFilter().slug }')
+              a(href, data-bind='text: name, click: $parent.changeFilter')
           ul.nav.navbar-nav.navbar-right
             li.dropdown
               a.dropdown-toggle(href, data-toggle='dropdown')
@@ -23,10 +25,10 @@ html
 
     .infokala-push-top
 
-    .container(data-bind='foreach: messages')
+    .container(data-bind='foreach: visibleMessages')
       .infokala-message
         .row
-          small.col-md-12.text-muted 21:03:15
+          small.col-md-12.text-muted(data-bind='text: formattedTime')
         .row
           strong.col-md-1(data-bind='text: author')
           .col-md-11(data-bind='text: message')
@@ -34,8 +36,10 @@ html
     .container
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')
         .row
-          .col-md-1: input.form-control.infokala-author-field(data-bind='value: author')
-          .col-md-9: input.form-control.infokala-message-field(data-bind='value: message', placeholder='Viesti...')
-          .col-md-2
-            select.form-control.infokala-message-type-field(data-bind='options: messageTypes, value: messageType')
+          .col-md-1.infokala-author-col
+            input.form-control(data-bind='value: author')
+          .col-md-9.infokala-message-col
+            input.form-control(data-bind='value: message', placeholder='Viesti...')
+          .col-md-2.infokala-message-type-col
+            select.form-control(data-bind='options: messageTypes, optionsText: "name", optionsValue: "slug", value: messageType')
         input.hidden(type='submit')

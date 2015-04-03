@@ -6,6 +6,9 @@ from django.conf import settings
 from django.db import models
 
 
+TIME_FORMAT = '%H:%M:%S'
+
+
 class Workflow(models.Model):
     name = models.CharField(verbose_name=u'nimi', max_length=128)
 
@@ -23,6 +26,13 @@ class Workflow(models.Model):
         except (State.DoesNotExist, State.MultipleObjectsReturned):
             warn(u'Workflow "{name}" does not have a unique initial state'.format(name=self.name))
             return self.state_set.order_by('order').first()
+
+    def as_dict(self):
+        return dict(
+            name=self.name,
+            states=[state.as_dict() for state in self.state_set.all().order_by('order')],
+            initialState=self.state_set.get(initial=True).slug,
+        )
 
 
 class State(models.Model):
@@ -50,11 +60,18 @@ class State(models.Model):
     def __unicode__(self):
         return self.name
 
+    def as_dict(self):
+        return dict(
+            slug=self.slug,
+            name=self.name,
+        )
+
 class MessageType(models.Model):
     event_slug = models.CharField(verbose_name=u'tapahtuman tunniste', max_length=64, db_index=True)
     name = models.CharField(verbose_name=u'nimi', max_length=128)
     slug = models.CharField(verbose_name=u'tunniste', max_length=64)
     workflow = models.ForeignKey(Workflow, verbose_name=u'työnkulku', related_name='message_type_set')
+    default = models.BooleanField(default=False, verbose_name=u'tapahtuman oletus')
 
     class Meta:
         verbose_name = u'viestityyppi'
@@ -74,6 +91,7 @@ class MessageType(models.Model):
         return dict(
             name=self.name,
             slug=self.slug,
+            workflow=self.workflow.as_dict(),
         )
 
 class Message(models.Model):
@@ -133,4 +151,5 @@ class Message(models.Model):
             updatedBy=self.updated_by.username if self.updated_by else None,
             createdAt=self.created_at.isoformat(),
             state=self.state.slug if self.state_id else None,
+            formattedTime=self.created_at.time().strftime(TIME_FORMAT) if self.created_at else '',
         )

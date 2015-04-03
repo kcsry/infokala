@@ -71,6 +71,10 @@ class Command(BaseCommand):
                 ),
             )
 
+        # make 'event' default
+        message_type.default = True
+        message_type.save()
+
         if not Message.objects.exists():
             for author, example_message in [
                 (u'Korppu', u'INFOSSA ON CORGI :333333'),

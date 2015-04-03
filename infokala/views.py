@@ -116,6 +116,7 @@ class MessagesView(ApiView):
             message=data['message'],
             message_type=message_type,
             created_by=request.user,
+            state=message_type.workflow.initial_state,
         )
 
         return 200, message.as_dict()
@@ -125,12 +126,18 @@ class ConfigView(ApiView):
     def _get(self, request, event):
         message_types = MessageType.objects.filter(event_slug=event.slug)
 
+        try:
+            default_message_type = message_types.get(default=True)
+        except MessageType.DoesNotExist:
+            default_message_type = message_types.first()
+
         return 200, dict(
             event=dict(
                 slug=event.slug,
                 name=event.name,
             ),
-            messageTypes=dict((mt.slug, mt.as_dict()) for mt in message_types),
+            messageTypes=[mt.as_dict() for mt in message_types],
+            defaultMessageType=default_message_type.slug,
             user=dict(
                 displayName=request.user.get_full_name() or request.user.username,
                 username=request.user.username
