@@ -16,16 +16,26 @@ module.exports = class MainViewModel
 
     @author = ko.observable ""
     @message = ko.observable ""
-    @messageType = ko.observable ""
+    @manualMessageType = ko.observable ""
     @messageTypes = ko.observable []
     @messageTypeFilters = ko.observable []
     @activeFilter = ko.observable slug: null
 
-    @visibleMessages = ko.computed =>
-      if @activeFilter()?.slug
-        _.filter @messages(), messageType: @activeFilter()?.slug
+    @visibleMessages = ko.pureComputed =>
+      activeFilter = @activeFilter()
+
+      if activeFilter?.slug
+        _.filter @messages(), messageType: activeFilter.slug
       else
         @messages()
+
+    @effectiveMessageType = ko.pureComputed =>
+      activeFilter = @activeFilter()
+
+      if activeFilter?.slug
+        activeFilter.slug
+      else
+        @manualMessageType()
 
     Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
       @user config.user
@@ -37,7 +47,7 @@ module.exports = class MainViewModel
         slug: null
         workflow: null
       ].concat config.messageTypes
-      @messageType config.defaultMessageType
+      @manualMessageType config.defaultMessageType
 
       @newMessages messages
       @setupPolling()
@@ -57,7 +67,7 @@ module.exports = class MainViewModel
   sendMessage: (formElement) =>
     return if @message() == ""
     sendMessage(
-      messageType: @messageType()
+      messageType: @effectiveMessageType()
       author: @author()
       message: @message()
     ).then =>

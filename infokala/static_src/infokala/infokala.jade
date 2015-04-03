@@ -13,7 +13,7 @@ html
           a.navbar-brand(href) Infokala
         .collapse.navbar-collapse#base-navbar-collapse
           ul.nav.navbar-nav(data-bind='foreach: messageTypeFilters')
-            li(data-bind='css: { active: slug == $parent.activeFilter().slug }')
+            li(data-bind='css: { active: slug === $parent.activeFilter().slug }')
               a(href, data-bind='text: name, click: $parent.activeFilter')
           ul.nav.navbar-nav.navbar-right
             li.dropdown
@@ -31,15 +31,17 @@ html
           small.col-md-12.text-muted(data-bind='text: formattedTime')
         .row
           strong.col-md-1(data-bind='text: author')
-          .col-md-11(data-bind='text: message')
+          .col-md-11
+            span(data-bind='text: message')
+            span.badge.pull-right(data-bind='text: state')
 
     .container
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')
         .row
           .col-md-1.infokala-author-col
             input.form-control(data-bind='value: author')
-          .col-md-9.infokala-message-col
+          .infokala-message-col(data-bind='css: { "col-md-9": activeFilter().slug === null, "col-md-11": activeFilter().slug !== null }')
             input.form-control(data-bind='value: message', placeholder='Viesti...')
-          .col-md-2.infokala-message-type-col
-            select.form-control(data-bind='options: messageTypes, optionsText: "name", optionsValue: "slug", value: messageType')
+          .col-md-2.infokala-message-type-col(data-bind='visible: activeFilter().slug === null')
+            select.form-control(data-bind='options: messageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
         input.hidden(type='submit')
