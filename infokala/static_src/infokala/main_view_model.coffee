@@ -1,7 +1,7 @@
 Promise = require 'bluebird'
 ko = require 'knockout'
 
-{getAllMessages, getMessagesSince, getConfig} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, getConfig, sendMessage} = require './message_service.coffee'
 
 refreshMilliseconds = 5 * 1000
 
@@ -13,9 +13,13 @@ module.exports = class MainViewModel
       displayName: ""
       username: ""
 
+    @author = ko.observable ""
+    @message = ko.observable ""
+
     Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
       @messageTypes = config.messageTypes
       @user config.user
+      @author config.user.displayName
       @newMessages messages
       @setupPolling()
 
@@ -29,3 +33,10 @@ module.exports = class MainViewModel
 
   refresh: =>
     getMessagesSince(@latestMessageTimestamp).then @newMessages
+
+  sendMessage: (formElement) =>
+    sendMessage(
+      messageType: 'event' # XXX hardcoded
+      author: @author()
+      message: @message()
+    ).then @refresh

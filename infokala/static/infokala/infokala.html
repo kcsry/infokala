@@ -30,5 +30,18 @@
         </div>
       </div>
     </div>
+    <div class="container">
+      <form data-bind="submit: sendMessage">
+        <div class="row">
+          <div class="col-md-1">
+            <input data-bind="value: author">
+          </div>
+          <div class="col-md-11">
+            <input data-bind="value: message">
+          </div>
+        </div>
+        <input type="submit" class="hidden">
+      </form>
+    </div>
   </body>
 </html>

@@ -27,3 +27,10 @@ html
         .row
           strong.col-md-1(data-bind='text: author')
           .col-md-11(data-bind='text: message')
+
+    .container
+      form(data-bind='submit: sendMessage')
+        .row
+          .col-md-1: input(data-bind='value: author')
+          .col-md-11: input(data-bind='value: message')
+        input.hidden(type='submit')
