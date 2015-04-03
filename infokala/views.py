@@ -1,13 +1,16 @@
 import json
+import logging
 
 from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.generic import View
 
-from typevalidator import validate
+from typevalidator import validate, OPTIONAL_KEY
+from dateutil.parser import parse as parse_datetime
 
 from .models import Message, MessageType
+from .forms import MessagesGetForm
 
 
 JSON_FORBIDDEN = json.dumps(dict(
@@ -19,6 +22,9 @@ JSON_BAD_REQUEST = json.dumps(dict(
     status=400,
     message="Bad request",
 ))
+
+
+logger = logging.getLogger(__name__)
 
 
 class ApiView(View):
@@ -63,7 +69,7 @@ class ApiView(View):
                 JSON_BAD_REQUEST,
                 status=400,
                 content_type='application/json'
-            )            
+            )
 
         status, response = self._post(request, event, data, *args, **kwargs)
         return HttpResponse(
@@ -74,7 +80,7 @@ class ApiView(View):
 
 
 MESSAGE_SCHEMA = dict(
-    message_type=unicode,
+    messageType=unicode,
     message=unicode,
     author=unicode,
 )
@@ -82,7 +88,20 @@ MESSAGE_SCHEMA = dict(
 
 class MessagesView(ApiView):
     def _get(self, request, event):
-        messages = Message.objects.filter(denorm_event_slug=event.slug).order_by('created_at')
+        criteria = dict(denorm_event_slug=event.slug)
+
+        since = request.GET.get('since')
+        if since:
+            try:
+                since = parse_datetime(since)
+            except ValueError:
+                return 400, JSON_BAD_REQUEST
+
+            print since
+
+            criteria.update(created_at__gt=since)
+
+        messages = Message.objects.filter(**criteria).order_by('created_at')
         return 200, [msg.as_dict() for msg in messages]
 
     def _post(self, request, event, data):
@@ -91,7 +110,7 @@ class MessagesView(ApiView):
 
         message_type = get_object_or_404(MessageType,
             event_slug=event.slug,
-            slug=data['message_type'],
+            slug=data['messageType'],
         )
 
         message = Message.objects.create(

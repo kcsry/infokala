@@ -8,6 +8,7 @@ pip-log.txt
 virtualenv/
 .bundle/
 tmp/
+src/
 .sublime-*
 node_modules/
 bower_components/

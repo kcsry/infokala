@@ -52,7 +52,7 @@ gulp.task 'index', ->
 gulp.task 'scripts', ->
   bundle = browserify
     entries: [paths.scripts.source]
-    debug: not production    
+    debug: not production
     extensions: ['.coffee']
 
   build = bundle.bundle()
@@ -85,7 +85,7 @@ gulp.task 'watch', ->
 
 gulp.task 'server', ->
   {spawn} = require('child_process')
-  server = spawn '/usr/bin/env', ['python', 'manage.py', 'runserver'], 
+  server = spawn '/usr/bin/env', ['python', 'manage.py', 'runserver'],
     stdio: [null, process.stdout, process.stderr]
 
 

@@ -1,20 +1,31 @@
 Promise = require 'bluebird'
 ko = require 'knockout'
-mapping = require 'knockout-mapping'
 
-{getMessages, getConfig} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, getConfig} = require './message_service.coffee'
+
+refreshMilliseconds = 5 * 1000
 
 module.exports = class MainViewModel
   constructor: ->
     @messages = ko.observableArray []
-    @user = mapping.fromJS
+    @latestMessageTimestamp = null
+    @user = ko.observable
       displayName: ""
       username: ""
 
-    Promise.all([getConfig(), getMessages()]).spread (config, messages) =>
+    Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
       @messageTypes = config.messageTypes
-      mapping.fromJS config.user, @user
+      @user config.user
       @newMessages messages
+      @setupPolling()
 
-  newMessages: (newMessages) ->
-    @messages.push message for message in newMessages
+  newMessages: (newMessages) =>
+    newMessages.forEach (message) =>
+      @messages.push message
+      @latestMessageTimestamp = message.createdAt
+
+  setupPolling: =>
+    window.setInterval @refresh, refreshMilliseconds
+
+  refresh: =>
+    getMessagesSince(@latestMessageTimestamp).then @newMessages

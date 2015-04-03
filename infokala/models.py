@@ -130,5 +130,6 @@ class Message(models.Model):
             author=self.author,
             createdBy=self.created_by.username if self.created_by else None,
             updatedBy=self.updated_by.username if self.updated_by else None,
+            createdAt=self.created_at.isoformat(),
             state=self.state.slug if self.state_id else None,
         )
