@@ -1,6 +1,15 @@
-.message
+.infokala-message
   padding-bottom 0.5em
   padding-top 0.5em
+  border-bottom 1px solid #eee
 
-.message + .message
-  border-top 1px solid #eee
+.infokala-push-top
+  margin-top 65px
+
+.infokala-message-form
+  padding-top 15px
+  padding-bottom 15px
+
+.infokala-message-field, .infokala-author-field
+  width 100%
+  margin-left -2px

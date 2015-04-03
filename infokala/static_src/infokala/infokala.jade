@@ -4,9 +4,10 @@ html
     title Infokala
     link(rel='stylesheet', href='/static/infokala/bootstrap.min.css')
     link(rel='stylesheet', href='/static/infokala/infokala.css')
+    meta(name="viewport", content="width=device-width, initial-scale=1")
     script(defer, src='/static/infokala/infokala.js')
   body
-    .navbar.navbar-default.navbar-static-top
+    .navbar.navbar-default.navbar-fixed-top
       .container
         .navbar-header
           a.navbar-brand(href) Infokala
@@ -15,13 +16,15 @@ html
           ul.nav.navbar-nav.navbar-right
             li.dropdown
               a.dropdown-toggle(href, data-toggle='dropdown')
-                span(data-bind='text: user.displayName')
+                span(data-bind='text: user().displayName')
                 b.caret
               ul.dropdown-menu
                 li: a(href='/logout') Kirjaudu ulos
 
+    .infokala-push-top
+
     .container(data-bind='foreach: messages')
-      .message
+      .infokala-message
         .row
           small.col-md-12.text-muted 21:03:15
         .row
@@ -29,8 +32,10 @@ html
           .col-md-11(data-bind='text: message')
 
     .container
-      form(data-bind='submit: sendMessage')
+      form.infokala-message-form(data-bind='submit: sendMessage', role='form')
         .row
-          .col-md-1: input(data-bind='value: author')
-          .col-md-11: input(data-bind='value: message')
+          .col-md-1: input.form-control.infokala-author-field(data-bind='value: author')
+          .col-md-9: input.form-control.infokala-message-field(data-bind='value: message', placeholder='Viesti...')
+          .col-md-2
+            select.form-control.infokala-message-type-field(data-bind='options: messageTypes, value: messageType')
         input.hidden(type='submit')

@@ -125,6 +125,7 @@ class Message(models.Model):
 
     def as_dict(self):
         return dict(
+            id=self.id,
             messageType=self.message_type.slug,
             message=self.message,
             author=self.author,

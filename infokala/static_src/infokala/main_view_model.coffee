@@ -15,6 +15,12 @@ module.exports = class MainViewModel
 
     @author = ko.observable ""
     @message = ko.observable ""
+    @messageType = ko.observable ""
+
+    # XXX hardcoded
+    @messageTypes = ko.observableArray [
+      'event'
+    ]
 
     Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
       @messageTypes = config.messageTypes
@@ -27,6 +33,7 @@ module.exports = class MainViewModel
     newMessages.forEach (message) =>
       @messages.push message
       @latestMessageTimestamp = message.createdAt
+      window.scrollTo 0, document.body.scrollHeight
 
   setupPolling: =>
     window.setInterval @refresh, refreshMilliseconds
