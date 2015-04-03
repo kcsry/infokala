@@ -14,7 +14,7 @@ html
         .collapse.navbar-collapse#base-navbar-collapse
           ul.nav.navbar-nav(data-bind='foreach: messageTypeFilters')
             li(data-bind='css: { active: slug == $parent.activeFilter().slug }')
-              a(href, data-bind='text: name, click: $parent.changeFilter')
+              a(href, data-bind='text: name, click: $parent.activeFilter')
           ul.nav.navbar-nav.navbar-right
             li.dropdown
               a.dropdown-toggle(href, data-toggle='dropdown')

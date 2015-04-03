@@ -22,7 +22,6 @@ module.exports = class MainViewModel
     @activeFilter = ko.observable slug: null
 
     @visibleMessages = ko.computed =>
-      console?.log 'visibleMessages'
       if @activeFilter()?.slug
         _.filter @messages(), messageType: @activeFilter()?.slug
       else
@@ -48,10 +47,6 @@ module.exports = class MainViewModel
       @messages.push message
       @latestMessageTimestamp = message.createdAt
       window.scrollTo 0, document.body.scrollHeight
-
-  changeFilter: (newFilter) =>
-    console.log 'changeFilter', newFilter
-    @activeFilter newFilter
 
   setupPolling: =>
     window.setInterval @refresh, refreshMilliseconds
