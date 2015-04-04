@@ -93,7 +93,7 @@ MESSAGE_SCHEMA = dict(
 
 class MessagesView(ApiView):
     def _get(self, request, event):
-        criteria = dict(denorm_event_slug=event.slug)
+        criteria = dict(event_slug=event.slug)
 
         since = request.GET.get('since')
         if since:
@@ -124,7 +124,6 @@ class MessagesView(ApiView):
             message=data['message'],
             message_type=message_type,
             created_by=request.user,
-            state=message_type.workflow.initial_state,
         )
 
         return 200, message.as_dict()
@@ -137,7 +136,7 @@ MESSAGE_UPDATE_SCHEMA = dict(
 
 class MessageView(ApiView):
     def _get(self, request, event, message_id):
-        message = Message.objects.filter(event=event, id=int(message_id)).first()
+        message = Message.objects.filter(event_slug=event.slug, id=int(message_id)).first()
 
         if not message:
             return 404, JSON_NOT_FOUND
@@ -145,16 +144,17 @@ class MessageView(ApiView):
         return 200, message.as_dict()
 
     def _post(self, request, event, data, message_id):
-        message = Message.objects.filter(event=event, id=int(message_id)).first()
+        message = Message.objects.filter(event_slug=event.slug, id=int(message_id)).first()
 
         if not message:
             return 404, JSON_NOT_FOUND
 
+        logger.warn('data %s', data)
+
         if not validate(MESSAGE_UPDATE_SCHEMA, data):
             return 400, dict(JSON_BAD_REQUEST, reason='request body failed validation')
 
-        new_state = State.objects.filter(
-            workflow=message.workflow,
+        new_state = message.message_type.workflow.state_set.filter(
             slug=data['state'],
         ).first()
 

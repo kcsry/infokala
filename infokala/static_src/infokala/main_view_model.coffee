@@ -102,10 +102,17 @@ module.exports = class MainViewModel
 
       @updateMessages [newMessage], false
 
-  cycleMessageState: (message) ->
-    updateMessage(
-      state: @nextState(message.state)
-    ).then (updatedMessage) =>
+  cycleMessageState: (message) =>
+    return unless @isMessageCycleable(message)
+
+    # figure out next state
+    states = message.messageType.workflow.states
+    currentStateIndex = _.findIndex states, slug: message.state.slug
+    console?.log 'currentStateIndex', currentStateIndex
+    nextState = states[currentStateIndex + 1] or states[0]
+
+    updateMessage(message.id, state: nextState.slug).then (updatedMessage) =>
       @updateMessages [updatedMessage], false
 
   shouldShowMessageType: => !@activeFilter().slug
+  isMessageCycleable: (message) => message.messageType.workflow.states.length > 1

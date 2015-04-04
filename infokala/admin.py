@@ -21,9 +21,9 @@ class MessageTypeAdmin(admin.ModelAdmin):
 
 
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('denorm_event_slug', 'author', 'message', 'message_type')
-    list_filter = ('denorm_event_slug', 'message_type')
-    exclude = ('denorm_event_slug',)
+    list_display = ('event_slug', 'author', 'message', 'message_type')
+    list_filter = ('event_slug', 'message_type')
+    exclude = ('event_slug',)
 
 admin.site.register(Workflow, WorkflowAdmin)
 admin.site.register(MessageType, MessageTypeAdmin)

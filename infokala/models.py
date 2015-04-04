@@ -103,8 +103,7 @@ class Message(models.Model):
     message = models.TextField(verbose_name=u'viesti')
     author = models.CharField(verbose_name=u'kirjoittaja', max_length=128)
 
-    # XXX how come state is allowed to be null?
-    state = models.ForeignKey(State, null=True, blank=True)
+    state = models.ForeignKey(State)
 
     created_by = models.ForeignKey('auth.User',
         verbose_name=u'lisääjä',
@@ -119,7 +118,7 @@ class Message(models.Model):
         related_name='+',
     )
 
-    denorm_event_slug = models.CharField(verbose_name=u'tapahtuman tunniste', max_length=64)
+    event_slug = models.CharField(verbose_name=u'tapahtuman tunniste', max_length=64)
 
     created_at = models.DateTimeField(verbose_name=u'lisäysaika', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name=u'muokkausaika', auto_now=True)
@@ -128,7 +127,7 @@ class Message(models.Model):
         verbose_name = u'viesti'
         verbose_name_plural = u'viestit'
         index_together = [
-            ('denorm_event_slug', 'created_at'),
+            ('event_slug', 'created_at'),
         ]
 
     def __unicode__(self):
@@ -138,8 +137,8 @@ class Message(models.Model):
         if not self.state_id and self.message_type_id:
             self.state = self.message_type.workflow.initial_state
 
-        if not self.denorm_event_slug and self.message_type_id:
-            self.denorm_event_slug = self.message_type.event_slug
+        if not self.event_slug and self.message_type_id:
+            self.event_slug = self.message_type.event_slug
 
         if not self.author and self.user_id:
             self.author = self.user.username
@@ -156,6 +155,6 @@ class Message(models.Model):
             updatedBy=self.updated_by.username if self.updated_by else None,
             createdAt=self.created_at.isoformat(),
             updatedAt=self.updated_at.isoformat(),
-            state=self.state.as_dict() if self.state else None,
+            state=self.state.as_dict(),
             formattedTime=self.created_at.time().strftime(TIME_FORMAT) if self.created_at else '',
         )

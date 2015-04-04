@@ -13,6 +13,14 @@
 .infokala-author-col, .infokala-message-col-middle
   padding-right 0
 
+.infokala-inactive
+  color #ccc
+
+.infokala-cycleable
+  cursor pointer
+  cursor hand
+
+
 @media screen
   .infokala-push-top
     margin-top 65px

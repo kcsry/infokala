@@ -11,7 +11,7 @@ html
       .container
         .navbar-header
           a.navbar-brand(href) Infokala
-        .collapse.navbar-collapse#base-navbar-collapse
+        .collapse.navbar-collapse#base-navbar-collapse(style='display: none', data-bind='visible: true')
           ul.nav.navbar-nav(data-bind='foreach: messageTypeFilters')
             li(data-bind='css: { active: slug === $parent.activeFilter().slug }')
               a(href, data-bind='text: name, click: $parent.activeFilter')
@@ -25,19 +25,19 @@ html
 
     .infokala-push-top
 
-    .container(data-bind='foreach: visibleMessages')
-      .infokala-message(data-bind='click: $parent.cycleMessageState')
+    .container(style='display: none', data-bind='visible: true, foreach: visibleMessages')
+      .infokala-message(data-bind='click: $parent.cycleMessageState, css: { "infokala-cycleable": $parent.isMessageCycleable($data) }')
         .row
           .col-md-12.text-muted
             span.label.label-default.pull-right(data-bind='visible: $parent.shouldShowMessageType(), text: messageType.name')
             .small(data-bind='text: formattedTime')
-        .row(data-bind='css: {"text-muted": !state.active}')
+        .row(data-bind='css: {"infokala-inactive": !state.active}')
           strong.col-md-1(data-bind='text: author')
           .col-md-11
-            span.label.pull-right(data-bind='text: state.name, css: state.labelClass')
+            span.label.pull-right(data-bind='text: state.name, css: state.labelClass, visible: $parent.isMessageCycleable($data)')
             span(data-bind='text: message')
 
-    .container
+    .container(style='display: none', data-bind='visible: true')
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')
         .row
           .col-md-1.infokala-author-col

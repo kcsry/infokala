@@ -11,7 +11,7 @@
     <div class="navbar navbar-default navbar-fixed-top">
       <div class="container">
         <div class="navbar-header"><a href class="navbar-brand">Infokala</a></div>
-        <div id="base-navbar-collapse" class="collapse navbar-collapse">
+        <div id="base-navbar-collapse" style="display: none" data-bind="visible: true" class="collapse navbar-collapse">
           <ul data-bind="foreach: messageTypeFilters" class="nav navbar-nav">
             <li data-bind="css: { active: slug === $parent.activeFilter().slug }"><a href data-bind="text: name, click: $parent.activeFilter"></a></li>
           </ul>
@@ -26,19 +26,19 @@
       </div>
     </div>
     <div class="infokala-push-top"></div>
-    <div data-bind="foreach: visibleMessages" class="container">
-      <div data-bind="click: $parent.cycleMessageState" class="infokala-message">
+    <div style="display: none" data-bind="visible: true, foreach: visibleMessages" class="container">
+      <div data-bind="click: $parent.cycleMessageState, css: { &quot;infokala-cycleable&quot;: $parent.isMessageCycleable($data) }" class="infokala-message">
         <div class="row">
           <div class="col-md-12 text-muted"><span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default pull-right"></span>
             <div data-bind="text: formattedTime" class="small"></div>
           </div>
         </div>
-        <div data-bind="css: {&quot;text-muted&quot;: !state.active}" class="row"><strong data-bind="text: author" class="col-md-1"></strong>
-          <div class="col-md-11"><span data-bind="text: state.name, css: state.labelClass" class="label pull-right"></span><span data-bind="text: message"></span></div>
+        <div data-bind="css: {&quot;infokala-inactive&quot;: !state.active}" class="row"><strong data-bind="text: author" class="col-md-1"></strong>
+          <div class="col-md-11"><span data-bind="text: state.name, css: state.labelClass, visible: $parent.isMessageCycleable($data)" class="label pull-right"></span><span data-bind="text: message"></span></div>
         </div>
       </div>
     </div>
-    <div class="container">
+    <div style="display: none" data-bind="visible: true" class="container">
       <form data-bind="submit: sendMessage" role="form" class="infokala-message-form">
         <div class="row">
           <div class="col-md-1 infokala-author-col">

@@ -91,7 +91,6 @@ class Command(BaseCommand):
                 Message(
                     message_type=message_type,
                     message=example_message,
-                    state=message_type.workflow.initial_state,
                     author=author,
                     created_by=user,
                 ).save()
