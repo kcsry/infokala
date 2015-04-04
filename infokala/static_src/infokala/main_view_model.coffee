@@ -35,8 +35,6 @@ module.exports = class MainViewModel
     @messageTypeFilters = ko.observable []
     @activeFilter = ko.observable slug: null
 
-    # XXX O(n) on every new or changed message - bad
-
     @messageTypesBySlug = ko.pureComputed => _.indexBy @messageTypes(), 'slug'
 
     # Using ko.pureComputed on @messages would be O(n) on every new or changed message – suicide
