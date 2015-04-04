@@ -9,6 +9,8 @@ refreshMilliseconds = 5 * 1000
 module.exports = class MainViewModel
   constructor: ->
     @messages = ko.observableArray []
+    @visibleMessages = ko.observableArray []
+
     @latestMessageTimestamp = null
     @user = ko.observable
       displayName: ""
@@ -34,19 +36,14 @@ module.exports = class MainViewModel
     @activeFilter = ko.observable slug: null
 
     # XXX O(n) on every new or changed message - bad
-    @visibleMessages = ko.pureComputed =>
-      activeFilter = @activeFilter()
-
-      if activeFilter?.slug
-        _.filter @messages(), (message) -> message.messageType.slug == activeFilter.slug
-      else
-        @messages()
 
     @messageTypesBySlug = ko.pureComputed => _.indexBy @messageTypes(), 'slug'
 
-    # Using ko.pureComputed would be O(n) on every new or changed message – suicide
+    # Using ko.pureComputed on @messages would be O(n) on every new or changed message – suicide
     @messagesById = {}
     @messages.subscribe @messageUpdated, null, 'arrayChange'
+    @visibleMessages.subscribe @visibleMessageUpdated, null, 'arrayChange'
+    @activeFilter.subscribe @filterChanged
 
     Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
       @user config.user
@@ -73,14 +70,23 @@ module.exports = class MainViewModel
 
       if existingMessage
         @messages.splice existingMessage.index, 1, updatedMessage
+        @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
       else
         @messages.push updatedMessage
+        @visibleMessages.push updatedMessage if @matchesFilter updatedMessage
 
         if updateLatestMessageTimestamp
           if !@latestMessageTimestamp or updatedMessage.updatedAt > @latestMessageTimestamp
             @latestMessageTimestamp = updatedMessage.updatedAt
 
         window.scrollTo 0, document.body.scrollHeight
+
+  visibleMessageUpdated: (changes) =>
+    changes.forEach (change) =>
+      return unless change.status == 'added'
+
+      message = change.value
+      message.visibleIndex = change.index
 
   messageUpdated: (changes) =>
     changes.forEach (change) =>
@@ -103,6 +109,7 @@ module.exports = class MainViewModel
       @updateMessages [newMessage], false
 
   cycleMessageState: (message) =>
+    console?.log 'message', message
     return unless @isMessageCycleable(message)
 
     # figure out next state
@@ -113,5 +120,18 @@ module.exports = class MainViewModel
     updateMessage(message.id, state: nextState.slug).then (updatedMessage) =>
       @updateMessages [updatedMessage], false
 
+  matchesFilter: (message) =>
+    activeFilter = @activeFilter()
+
+    if activeFilter.slug
+      message.messageType.slug == @activeFilter().slug
+    else
+      true
+
+  filterChanged: (newFilter) =>
+    @visibleMessages.splice 0, @visibleMessages().length, _.filter(@messages(), @matchesFilter)...
+
   shouldShowMessageType: => !@activeFilter().slug
-  isMessageCycleable: (message) => message.messageType.workflow.states.length > 1
+  isMessageCycleable: (message) =>
+    console.log 'isMessageCycleable', message
+    message.messageType.workflow.states.length > 1
