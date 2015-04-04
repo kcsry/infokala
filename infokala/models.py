@@ -40,6 +40,8 @@ class State(models.Model):
     order = models.IntegerField(default=0, verbose_name=u'järjestys')
     name = models.CharField(verbose_name=u'nimi', max_length=128)
     slug = models.CharField(verbose_name=u'tunniste', max_length=64)
+    active = models.BooleanField(default=True, verbose_name=u'aktiivinen')
+    label_class = models.CharField(verbose_name=u'label-luokka', max_length=32, blank=True, default='')
     initial = models.BooleanField(
         verbose_name=u'alkutila',
         help_text=u'Tämä tila asetetaan uuden viestin tilaksi. Valitse kussakin työnkulussa tasan yksi tila alkutilaksi.',
@@ -64,6 +66,8 @@ class State(models.Model):
         return dict(
             slug=self.slug,
             name=self.name,
+            active=self.active,
+            labelClass=self.label_class,
         )
 
 class MessageType(models.Model):
@@ -149,7 +153,7 @@ class Message(models.Model):
             author=self.author,
             createdBy=self.created_by.username if self.created_by else None,
             updatedBy=self.updated_by.username if self.updated_by else None,
-            createdAt=self.created_at.isoformat(),
-            state=self.state.slug if self.state_id else None,
+            createdAt=self.created_at.isoformat() if self.created_at else None,
+            state=self.state.as_dict() if self.state else None,
             formattedTime=self.created_at.time().strftime(TIME_FORMAT) if self.created_at else '',
         )

@@ -29,11 +29,11 @@ html
       .infokala-message
         .row
           small.col-md-12.text-muted(data-bind='text: formattedTime')
-        .row
+        .row(data-bind='css: {"lippukala-inactive": state.active}')
           strong.col-md-1(data-bind='text: author')
           .col-md-11
             span(data-bind='text: message')
-            span.badge.pull-right(data-bind='text: state')
+            span.label.pull-right(data-bind='text: state.name, css: state.labelClass')
 
     .container
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')

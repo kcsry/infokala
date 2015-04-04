@@ -34,15 +34,15 @@ class Command(BaseCommand):
         )
 
         order = 0
-        for workflow, name, slug, initial in [
-            (basic_workflow, u'Avoinna', 'open', True),
-            (basic_workflow, u'Hoidettu', 'resolved', False),
+        for workflow, name, slug, initial, label_class, active in [
+            (basic_workflow, u'Avoinna', 'open', True, 'label-primary', True),
+            (basic_workflow, u'Hoidettu', 'resolved', False, 'label-success', False),
 
-            (lost_and_found_workflow, u'Kateissa', 'missing', True),
-            (lost_and_found_workflow, u'Löydetty', 'found', False),
-            (lost_and_found_workflow, u'Palautettu omistajalle', 'returned', False),
+            (lost_and_found_workflow, u'Kateissa', 'missing', True, 'label-primary', True),
+            (lost_and_found_workflow, u'Löydetty', 'found', False, 'label-info', True),
+            (lost_and_found_workflow, u'Palautettu omistajalle', 'returned', False, 'label-success', False),
         ]:
-            State.objects.get_or_create(
+            state, created = State.objects.get_or_create(
                 workflow=workflow,
                 slug=slug,
                 defaults=dict(
@@ -51,6 +51,10 @@ class Command(BaseCommand):
                     initial=initial,
                 ),
             )
+
+            state.label_class = label_class
+            state.active = active
+            state.save()
 
             order += 10
 

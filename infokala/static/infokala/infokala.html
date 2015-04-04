@@ -29,8 +29,8 @@
     <div data-bind="foreach: visibleMessages" class="container">
       <div class="infokala-message">
         <div class="row"><small data-bind="text: formattedTime" class="col-md-12 text-muted"></small></div>
-        <div class="row"><strong data-bind="text: author" class="col-md-1"></strong>
-          <div class="col-md-11"><span data-bind="text: message"></span><span data-bind="text: state" class="badge pull-right"></span></div>
+        <div data-bind="css: {&quot;lippukala-inactive&quot;: state.active}" class="row"><strong data-bind="text: author" class="col-md-1"></strong>
+          <div class="col-md-11"><span data-bind="text: message"></span><span data-bind="text: state.name, css: state.labelClass" class="label pull-right"></span></div>
         </div>
       </div>
     </div>
