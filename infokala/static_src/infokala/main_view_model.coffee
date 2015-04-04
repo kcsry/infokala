@@ -108,7 +108,6 @@ module.exports = class MainViewModel
     # figure out next state
     states = message.messageType.workflow.states
     currentStateIndex = _.findIndex states, slug: message.state.slug
-    console?.log 'currentStateIndex', currentStateIndex
     nextState = states[currentStateIndex + 1] or states[0]
 
     updateMessage(message.id, state: nextState.slug).then (updatedMessage) =>
