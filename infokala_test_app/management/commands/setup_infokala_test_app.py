@@ -33,14 +33,20 @@ class Command(BaseCommand):
             name=u'Löytötavaratyönkulku',
         )
 
+        simple_workflow, unused = Workflow.objects.get_or_create(
+            name=u'Yksinkertainen työnkulku',
+        )
+
         order = 0
         for workflow, name, slug, initial, label_class, active in [
             (basic_workflow, u'Avoinna', 'open', True, 'label-primary', True),
             (basic_workflow, u'Hoidettu', 'resolved', False, 'label-success', False),
 
             (lost_and_found_workflow, u'Kateissa', 'missing', True, 'label-primary', True),
-            (lost_and_found_workflow, u'Löydetty', 'found', False, 'label-info', True),
+            (lost_and_found_workflow, u'Tuotu Infoon', 'found', False, 'label-info', True),
             (lost_and_found_workflow, u'Palautettu omistajalle', 'returned', False, 'label-success', False),
+
+            (simple_workflow, u'Kirjattu', 'recorded', True, 'label-primary', True),
         ]:
             state, created = State.objects.get_or_create(
                 workflow=workflow,
@@ -59,12 +65,10 @@ class Command(BaseCommand):
             order += 10
 
         for name, slug, workflow in [
-            (u'Löydetty', 'found', lost_and_found_workflow),
-            (u'Kateissa', 'missing', basic_workflow),
+            (u'Löytötavarat', 'lost-and-found', lost_and_found_workflow),
             (u'Tehtävä', 'task', basic_workflow),
             (u'Kysymys', 'question', basic_workflow),
-            (u'Ongelma', 'problem', basic_workflow),
-            (u'Tapahtuma', 'event', basic_workflow),
+            (u'Tapahtuma', 'event', simple_workflow),
         ]:
             message_type, unused = MessageType.objects.get_or_create(
                 event_slug=event.slug,
@@ -87,6 +91,7 @@ class Command(BaseCommand):
                 Message(
                     message_type=message_type,
                     message=example_message,
+                    state=message_type.workflow.initial_state,
                     author=author,
                     created_by=user,
                 ).save()
