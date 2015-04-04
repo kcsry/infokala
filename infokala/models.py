@@ -103,6 +103,7 @@ class Message(models.Model):
     message = models.TextField(verbose_name=u'viesti')
     author = models.CharField(verbose_name=u'kirjoittaja', max_length=128)
 
+    # XXX how come state is allowed to be null?
     state = models.ForeignKey(State, null=True, blank=True)
 
     created_by = models.ForeignKey('auth.User',
@@ -153,7 +154,8 @@ class Message(models.Model):
             author=self.author,
             createdBy=self.created_by.username if self.created_by else None,
             updatedBy=self.updated_by.username if self.updated_by else None,
-            createdAt=self.created_at.isoformat() if self.created_at else None,
+            createdAt=self.created_at.isoformat(),
+            updatedAt=self.updated_at.isoformat(),
             state=self.state.as_dict() if self.state else None,
             formattedTime=self.created_at.time().strftime(TIME_FORMAT) if self.created_at else '',
         )

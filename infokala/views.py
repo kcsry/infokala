@@ -161,8 +161,10 @@ class MessageView(ApiView):
         if not new_state:
             return 400, dict(JSON_BAD_REQUEST, reason='invalid state')
 
-        message.state = new_state
-        message.save()
+        if message.state != new_state:
+            message.updated_by = request.user
+            message.state = new_state
+            message.save()
 
         return 200, message.as_dict()
 

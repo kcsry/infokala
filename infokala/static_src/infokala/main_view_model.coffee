@@ -2,7 +2,7 @@ Promise = require 'bluebird'
 ko = require 'knockout'
 _ = require 'lodash'
 
-{getAllMessages, getMessagesSince, getConfig, sendMessage} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, getConfig, sendMessage, updateMessage} = require './message_service.coffee'
 
 refreshMilliseconds = 5 * 1000
 
@@ -14,9 +14,21 @@ module.exports = class MainViewModel
       displayName: ""
       username: ""
 
+    # New message author and message fields
     @author = ko.observable ""
     @message = ko.observable ""
+
+    # If the "All" filter is active, message type for a new message is selected via a dropdown field.
+    # Otherwise it is the message type of the active filter.
     @manualMessageType = ko.observable ""
+    @effectiveMessageType = ko.pureComputed =>
+      activeFilter = @activeFilter()
+
+      if activeFilter?.slug
+        activeFilter.slug
+      else
+        @manualMessageType()
+
     @messageTypes = ko.observable []
     @messageTypeFilters = ko.observable []
     @activeFilter = ko.observable slug: null
@@ -29,14 +41,6 @@ module.exports = class MainViewModel
         _.filter @messages(), (message) -> message.messageType.slug == activeFilter.slug
       else
         @messages()
-
-    @effectiveMessageType = ko.pureComputed =>
-      activeFilter = @activeFilter()
-
-      if activeFilter?.slug
-        activeFilter.slug
-      else
-        @manualMessageType()
 
     @messageTypesBySlug = ko.pureComputed => _.indexBy @messageTypes(), 'slug'
 
@@ -63,27 +67,27 @@ module.exports = class MainViewModel
   refresh: =>
     getMessagesSince(@latestMessageTimestamp).then @newMessages
 
-  updateMessages: (updatedMessages) =>
+  updateMessages: (updatedMessages, updateLatestMessageTimestamp=true) =>
     updatedMessages.forEach (updatedMessage) =>
       existingMessage = @messagesById[updatedMessage.id]
 
       if existingMessage
-        updatedMessage.index = existingMessage.index
         @messages.splice existingMessage.index, 1, updatedMessage
       else
         @messages.push updatedMessage
 
-        if !@latestMessageTimestamp or updatedMessage.createdAt > @latestMessageTimestamp
-          @latestMessageTimestamp = updatedMessage.createdAt
+        if updateLatestMessageTimestamp
+          if !@latestMessageTimestamp or updatedMessage.updatedAt > @latestMessageTimestamp
+            @latestMessageTimestamp = updatedMessage.updatedAt
 
         window.scrollTo 0, document.body.scrollHeight
 
   messageUpdated: (changes) =>
-    console?.log 'messageUpdated', changes
     changes.forEach (change) =>
       return unless change.status == 'added'
 
       message = change.value
+      message.index = change.index
       @messagesById[message.id] = message
 
   sendMessage: (formElement) =>
@@ -93,13 +97,15 @@ module.exports = class MainViewModel
       author: @author()
       message: @message()
     ).then (newMessage) =>
+      # clear the message field
       @message ""
-      @updateMessages [newMessage]
+
+      @updateMessages [newMessage], false
 
   cycleMessageState: (message) ->
     updateMessage(
       state: @nextState(message.state)
     ).then (updatedMessage) =>
-      @updateMessages [updatedMessage]
+      @updateMessages [updatedMessage], false
 
   shouldShowMessageType: => !@activeFilter().slug
