@@ -6,6 +6,9 @@
   &:hover
     background-color #f8f8f8
 
+    .infokala-next-state
+      display inline
+
 .infokala-message-form
   padding-top 15px
   padding-bottom 15px
@@ -20,6 +23,8 @@
   cursor pointer
   cursor hand
 
+.infokala-next-state
+  display none
 
 @media screen
   .infokala-push-top

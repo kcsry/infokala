@@ -29,12 +29,13 @@
     <div style="display: none" data-bind="visible: true, foreach: visibleMessages" class="container">
       <div data-bind="click: $parent.cycleMessageState, css: { &quot;infokala-cycleable&quot;: $parent.isMessageCycleable($data) }" class="infokala-message">
         <div class="row">
-          <div class="col-md-12 text-muted"><span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default pull-right"></span>
+          <div class="col-md-12 text-muted">
+            <div class="pull-right"><span data-bind="visible: $parent.isMessageCycleable($data)"><span data-bind="text: state.name, css: state.labelClass" class="label"></span><span data-bind="with: $parent.nextState($data)" class="infokala-next-state"><span class="text-muted">&thinsp;&rArr;&thinsp;</span><span data-bind="text: name, css: labelClass" class="label"></span></span></span>&emsp;<span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default"></span></div>
             <div data-bind="text: formattedTime" class="small"></div>
           </div>
         </div>
         <div data-bind="css: {&quot;infokala-inactive&quot;: !state.active}" class="row"><strong data-bind="text: author" class="col-md-1"></strong>
-          <div class="col-md-11"><span data-bind="text: state.name, css: state.labelClass, visible: $parent.isMessageCycleable($data)" class="label pull-right"></span><span data-bind="text: message"></span></div>
+          <div data-bind="text: message" class="col-md-11"></div>
         </div>
       </div>
     </div>

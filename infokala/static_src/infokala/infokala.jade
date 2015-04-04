@@ -29,13 +29,18 @@ html
       .infokala-message(data-bind='click: $parent.cycleMessageState, css: { "infokala-cycleable": $parent.isMessageCycleable($data) }')
         .row
           .col-md-12.text-muted
-            span.label.label-default.pull-right(data-bind='visible: $parent.shouldShowMessageType(), text: messageType.name')
+            .pull-right
+              span(data-bind='visible: $parent.isMessageCycleable($data)')
+                span.label(data-bind='text: state.name, css: state.labelClass')
+                span.infokala-next-state(data-bind='with: $parent.nextState($data)')
+                  span.text-muted &thinsp;&rArr;&thinsp;
+                  span.label(data-bind='text: name, css: labelClass')
+              | &emsp;
+              span.label.label-default(data-bind='visible: $parent.shouldShowMessageType(), text: messageType.name')
             .small(data-bind='text: formattedTime')
         .row(data-bind='css: {"infokala-inactive": !state.active}')
           strong.col-md-1(data-bind='text: author')
-          .col-md-11
-            span.label.pull-right(data-bind='text: state.name, css: state.labelClass, visible: $parent.isMessageCycleable($data)')
-            span(data-bind='text: message')
+          .col-md-11(data-bind='text: message')
 
     .container(style='display: none', data-bind='visible: true')
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')
