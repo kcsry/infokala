@@ -25,7 +25,7 @@ module.exports = class MainViewModel
       activeFilter = @activeFilter()
 
       if activeFilter?.slug
-        _.filter @messages(), messageType: activeFilter.slug
+        _.filter @messages(), (message) -> message.messageType.slug == activeFilter.slug
       else
         @messages()
 

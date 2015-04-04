@@ -48,8 +48,8 @@ module.exports = MainViewModel = (function() {
         var activeFilter;
         activeFilter = _this.activeFilter();
         if (activeFilter != null ? activeFilter.slug : void 0) {
-          return _.filter(_this.messages(), {
-            messageType: activeFilter.slug
+          return _.filter(_this.messages(), function(message) {
+            return message.messageType.slug === activeFilter.slug;
           });
         } else {
           return _this.messages();

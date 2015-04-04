@@ -27,10 +27,14 @@
     </div>
     <div class="infokala-push-top"></div>
     <div data-bind="foreach: visibleMessages" class="container">
-      <div class="infokala-message">
-        <div class="row"><small data-bind="text: formattedTime" class="col-md-12 text-muted"></small></div>
-        <div data-bind="css: {&quot;lippukala-inactive&quot;: state.active}" class="row"><strong data-bind="text: author" class="col-md-1"></strong>
-          <div class="col-md-11"><span data-bind="text: message"></span><span data-bind="text: state.name, css: state.labelClass" class="label pull-right"></span></div>
+      <div data-bind="click: cycleMessageState" class="infokala-message">
+        <div class="row">
+          <div class="col-md-12 text-muted"><span data-bind="visible: $parent.activeFilter().slug === null, text: messageType.name" class="label label-default pull-right"></span>
+            <div data-bind="text: formattedTime" class="small"></div>
+          </div>
+        </div>
+        <div data-bind="css: {&quot;text-muted&quot;: !state.active}" class="row"><strong data-bind="text: author" class="col-md-1"></strong>
+          <div class="col-md-11"><span data-bind="text: state.name, css: state.labelClass" class="label pull-right"></span><span data-bind="text: message"></span></div>
         </div>
       </div>
     </div>

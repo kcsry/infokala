@@ -26,14 +26,16 @@ html
     .infokala-push-top
 
     .container(data-bind='foreach: visibleMessages')
-      .infokala-message
+      .infokala-message(data-bind='click: cycleMessageState')
         .row
-          small.col-md-12.text-muted(data-bind='text: formattedTime')
-        .row(data-bind='css: {"lippukala-inactive": state.active}')
+          .col-md-12.text-muted
+            span.label.label-default.pull-right(data-bind='visible: $parent.activeFilter().slug === null, text: messageType.name')
+            .small(data-bind='text: formattedTime')
+        .row(data-bind='css: {"text-muted": !state.active}')
           strong.col-md-1(data-bind='text: author')
           .col-md-11
-            span(data-bind='text: message')
             span.label.pull-right(data-bind='text: state.name, css: state.labelClass')
+            span(data-bind='text: message')
 
     .container
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')

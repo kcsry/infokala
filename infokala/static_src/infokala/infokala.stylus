@@ -6,12 +6,17 @@
   &:hover
     background-color #f8f8f8
 
-.infokala-push-top
-  margin-top 65px
-
 .infokala-message-form
   padding-top 15px
   padding-bottom 15px
 
 .infokala-author-col, .infokala-message-col
   padding-right 0
+
+@media screen
+  .infokala-push-top
+    margin-top 65px
+
+@media print
+  .infokala-message-form
+    display none

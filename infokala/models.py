@@ -148,7 +148,7 @@ class Message(models.Model):
     def as_dict(self):
         return dict(
             id=self.id,
-            messageType=self.message_type.slug,
+            messageType=self.message_type.as_dict(),
             message=self.message,
             author=self.author,
             createdBy=self.created_by.username if self.created_by else None,
