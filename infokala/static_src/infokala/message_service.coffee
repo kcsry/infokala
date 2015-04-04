@@ -36,3 +36,4 @@ exports.getConfig = -> exports.getJSON "/config"
 exports.getMessagesSince = (since) -> exports.getJSON "/messages?since=#{encodeURIComponent(since)}"
 exports.getAllMessages = -> exports.getJSON "/messages"
 exports.sendMessage = (message) -> exports.postJSON "/messages", message
+exports.updateMessage = (message) -> exports.postJSON "/messages/#{message.id}", message

@@ -13,15 +13,20 @@ from .models import Message, MessageType
 from .forms import MessagesGetForm
 
 
-JSON_FORBIDDEN = json.dumps(dict(
+JSON_FORBIDDEN = dict(
     status=403,
     message="Forbidden",
-))
+)
 
-JSON_BAD_REQUEST = json.dumps(dict(
+JSON_BAD_REQUEST = dict(
     status=400,
     message="Bad request",
-))
+)
+
+JSON_NOT_FOUND = dict(
+    status=404,
+    message="Not found"
+)
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +45,7 @@ class ApiView(View):
 
         if not self.authenticate(request, event):
             return HttpResponse(
-                JSON_FORBIDDEN,
+                json.dumps(JSON_FORBIDDEN),
                 status=403,
                 content_type='application/json',
             )
@@ -57,7 +62,7 @@ class ApiView(View):
 
         if not self.authenticate(request, event):
             return HttpResponse(
-                JSON_FORBIDDEN,
+                json.dumps(JSON_FORBIDDEN),
                 status=403,
                 content_type='application/json',
             )
@@ -66,7 +71,7 @@ class ApiView(View):
             data = json.loads(request.body)
         except ValueError:
             return HttpResponse(
-                JSON_BAD_REQUEST,
+                json.dumps(dict(JSON_BAD_REQUEST, reason='document body is not valid JSON')),
                 status=400,
                 content_type='application/json'
             )
@@ -95,21 +100,24 @@ class MessagesView(ApiView):
             try:
                 since = parse_datetime(since)
             except ValueError:
-                return 400, JSON_BAD_REQUEST
+                return 400, dict(JSON_BAD_REQUEST, reason='unable to parse since parameter')
 
-            criteria.update(created_at__gt=since)
+            criteria.update(updated_at__gt=since)
 
         messages = Message.objects.filter(**criteria).order_by('created_at')
         return 200, [msg.as_dict() for msg in messages]
 
     def _post(self, request, event, data):
         if not validate(MESSAGE_SCHEMA, data):
-            return 400, JSON_BAD_REQUEST
+            return 400, dict(JSON_BAD_REQUEST, reason='request body failed validation')
 
-        message_type = get_object_or_404(MessageType,
+        message_type = MessageType.objects.filter(
             event_slug=event.slug,
             slug=data['messageType'],
-        )
+        ).first()
+
+        if not message_type:
+            return 400, dict(JSON_BAD_REQUEST, reason='invalid messageType')
 
         message = Message.objects.create(
             author=data['author'],
@@ -118,6 +126,43 @@ class MessagesView(ApiView):
             created_by=request.user,
             state=message_type.workflow.initial_state,
         )
+
+        return 200, message.as_dict()
+
+
+MESSAGE_UPDATE_SCHEMA = dict(
+    state=unicode,
+)
+
+
+class MessageView(ApiView):
+    def _get(self, request, event, message_id):
+        message = Message.objects.filter(event=event, id=int(message_id)).first()
+
+        if not message:
+            return 404, JSON_NOT_FOUND
+
+        return 200, message.as_dict()
+
+    def _post(self, request, event, data, message_id):
+        message = Message.objects.filter(event=event, id=int(message_id)).first()
+
+        if not message:
+            return 404, JSON_NOT_FOUND
+
+        if not validate(MESSAGE_UPDATE_SCHEMA, data):
+            return 400, dict(JSON_BAD_REQUEST, reason='request body failed validation')
+
+        new_state = State.objects.filter(
+            workflow=message.workflow,
+            slug=data['state'],
+        ).first()
+
+        if not new_state:
+            return 400, dict(JSON_BAD_REQUEST, reason='invalid state')
+
+        message.state = new_state
+        message.save()
 
         return 200, message.as_dict()
 

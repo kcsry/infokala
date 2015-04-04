@@ -26,10 +26,10 @@ html
     .infokala-push-top
 
     .container(data-bind='foreach: visibleMessages')
-      .infokala-message(data-bind='click: cycleMessageState')
+      .infokala-message(data-bind='click: $parent.cycleMessageState')
         .row
           .col-md-12.text-muted
-            span.label.label-default.pull-right(data-bind='visible: $parent.activeFilter().slug === null, text: messageType.name')
+            span.label.label-default.pull-right(data-bind='visible: $parent.shouldShowMessageType(), text: messageType.name')
             .small(data-bind='text: formattedTime')
         .row(data-bind='css: {"text-muted": !state.active}')
           strong.col-md-1(data-bind='text: author')
@@ -42,8 +42,8 @@ html
         .row
           .col-md-1.infokala-author-col
             input.form-control(data-bind='value: author')
-          .infokala-message-col(data-bind='css: { "col-md-9": activeFilter().slug === null, "col-md-11": activeFilter().slug !== null }')
+          .infokala-message-col(data-bind='css: { "col-md-9": shouldShowMessageType(), "col-md-11": !shouldShowMessageType(), "infokala-message-col-middle": shouldShowMessageType() }')
             input.form-control(data-bind='value: message', placeholder='Viesti...')
-          .col-md-2.infokala-message-type-col(data-bind='visible: activeFilter().slug === null')
+          .col-md-2.infokala-message-type-col(data-bind='visible: shouldShowMessageType()')
             select.form-control(data-bind='options: messageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
         input.hidden(type='submit')
