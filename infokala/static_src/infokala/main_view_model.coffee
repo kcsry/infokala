@@ -56,7 +56,12 @@ module.exports = class MainViewModel
       @manualMessageType config.defaultMessageType
 
       @updateMessages messages
-      @setupPolling()
+
+      # setup polling
+      window.setInterval @refresh, refreshMilliseconds
+
+  refresh: =>
+    getMessagesSince(@latestMessageTimestamp).then @newMessages
 
   updateMessages: (updatedMessages) =>
     updatedMessages.forEach (updatedMessage) =>
@@ -80,12 +85,6 @@ module.exports = class MainViewModel
 
       message = change.value
       @messagesById[message.id] = message
-
-  setupPolling: =>
-    window.setInterval @refresh, refreshMilliseconds
-
-  refresh: =>
-    getMessagesSince(@latestMessageTimestamp).then @newMessages
 
   sendMessage: (formElement) =>
     return if @message() == ""
