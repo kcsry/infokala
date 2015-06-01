@@ -6,7 +6,6 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.generic import View
 
-from typevalidator import validate, OPTIONAL_KEY
 from dateutil.parser import parse as parse_datetime
 
 from .models import Message, MessageType
@@ -30,6 +29,42 @@ JSON_NOT_FOUND = dict(
 
 
 logger = logging.getLogger(__name__)
+
+
+def validate(data_dict, *field_names):
+    """
+    Validates that the untrusted data contains the given fields and only them, and that they are
+    strings.
+
+    >>> validate({'a': 'foo'}, 'a')
+    >>> validate({'a': 'foo'}, 'a', 'b')
+    Traceback (most recent call last):
+      File "<console>", line 1, in <module>
+      File "/Users/japsu/Hobby/infokala/infokala/views.py", line 42, in validate
+        raise ValueError()
+    ValueError
+    >>> validate({'a': 'foo', 'b': 5}, 'a')
+    Traceback (most recent call last):
+      File "<console>", line 1, in <module>
+      File "/Users/japsu/Hobby/infokala/infokala/views.py", line 42, in validate
+        raise ValueError()
+    ValueError
+    >>> validate({'a': 'foo', 'b': 5}, 'a', 'b')
+    Traceback (most recent call last):
+      File "<console>", line 1, in <module>
+      File "/Users/japsu/Hobby/infokala/infokala/views.py", line 46, in validate
+        raise ValueError()
+    ValueError
+    >>> validate({'a': 'foo', 'b': '5'}, 'a', 'b')
+    """
+
+    # TODO better reporting
+    if set(data_dict.keys()) != set(field_names):
+        raise ValueError()
+
+    for value in data_dict.values():
+        if not isinstance(value, basestring):
+            raise ValueError()
 
 
 class ApiView(View):
@@ -84,13 +119,6 @@ class ApiView(View):
         )
 
 
-MESSAGE_SCHEMA = dict(
-    messageType=unicode,
-    message=unicode,
-    author=unicode,
-)
-
-
 class MessagesView(ApiView):
     def _get(self, request, event):
         criteria = dict(event_slug=event.slug)
@@ -108,7 +136,7 @@ class MessagesView(ApiView):
         return 200, [msg.as_dict() for msg in messages]
 
     def _post(self, request, event, data):
-        if not validate(MESSAGE_SCHEMA, data):
+        if not validate(data, 'messageType', 'message', 'author'):
             return 400, dict(JSON_BAD_REQUEST, reason='request body failed validation')
 
         message_type = MessageType.objects.filter(
@@ -129,11 +157,6 @@ class MessagesView(ApiView):
         return 200, message.as_dict()
 
 
-MESSAGE_UPDATE_SCHEMA = dict(
-    state=unicode,
-)
-
-
 class MessageView(ApiView):
     def _get(self, request, event, message_id):
         message = Message.objects.filter(event_slug=event.slug, id=int(message_id)).first()
@@ -151,7 +174,7 @@ class MessageView(ApiView):
 
         logger.warn('data %s', data)
 
-        if not validate(MESSAGE_UPDATE_SCHEMA, data):
+        if not validate(data, 'state'):
             return 400, dict(JSON_BAD_REQUEST, reason='request body failed validation')
 
         new_state = message.message_type.workflow.state_set.filter(

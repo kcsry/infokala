@@ -16,6 +16,5 @@ setup(
     author_email='japsu@desucon.fi',
     url='https://github.com/japsu/infokala',
     packages=['infokala'],
-    # install_requires=requirements('requirements.txt'),
-    # install_requires=['bencodetools-master', 'Django']
+    install_requires=requirements('requirements.txt'),
 )
