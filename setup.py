@@ -16,5 +16,8 @@ setup(
     author_email='japsu@desucon.fi',
     url='https://github.com/japsu/infokala',
     packages=['infokala'],
+    package_data={'infokala': ['static/infokala/*']},
+    include_package_data=True,
+    zip_safe=False,
     install_requires=requirements('requirements.txt'),
 )
