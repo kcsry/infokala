@@ -60,7 +60,10 @@ module.exports = class MainViewModel
       window.setInterval @refresh, refreshMilliseconds
 
   refresh: =>
-    getMessagesSince(@latestMessageTimestamp).then @newMessages
+    if @latestMessageTimestamp
+      getMessagesSince(@latestMessageTimestamp).then @newMessages
+    else
+      getAllMessages().then @newMessages
 
   updateMessages: (updatedMessages, updateLatestMessageTimestamp=true) =>
     updatedMessages.forEach (updatedMessage) =>

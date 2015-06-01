@@ -32,6 +32,31 @@ JSON_NOT_FOUND = dict(
 logger = logging.getLogger(__name__)
 
 
+class ValidationError(ValueError):
+    def __init__(self, *args):
+        super(ValidationError, self).__init__(*args)
+        self.msg = self.msg_template.format(args)
+
+    def as_dict(self):
+        return dict(
+            status=400,
+            message=self.msg,
+            fields=self.args,
+        )
+
+
+class RequiredFieldsMissing(ValidationError):
+    msg_template = 'Required fields missing: {}'
+
+
+class ExtraFieldsPresent(ValidationError):
+    msg_template = 'Extra fields present: {}'
+
+
+class FieldTypeMismatch(ValidationError):
+    msg_template = 'Field type mismatch: {}'
+
+
 def validate(data_dict, *field_names):
     """
     Validates that the untrusted data contains the given fields and only them, and that they are
@@ -59,13 +84,21 @@ def validate(data_dict, *field_names):
     >>> validate({'a': 'foo', 'b': '5'}, 'a', 'b')
     """
 
-    # TODO better reporting
-    if set(data_dict.keys()) != set(field_names):
-        raise ValueError()
+    expected = set(field_names)
+    got = set(data_dict.keys())
 
-    for value in data_dict.values():
-        if not isinstance(value, basestring):
-            raise ValueError()
+    extra_keys = got - expected
+    if extra_keys:
+        raise ExtraFieldsPresent(*extra_keys)
+
+    missing_keys = expected - got
+    if missing_keys:
+        raise RequiredFieldsMissing(*missing_keys)
+
+    type_mismatches = [key for (key, value) in data_dict.iteritems() if not isinstance(value, basestring)]
+    if type_mismatches:
+        raise FieldTypeMismatch(*type_mismatches)
+
 
 
 class ApiView(View):
@@ -137,8 +170,10 @@ class MessagesView(ApiView):
         return 200, [msg.as_dict() for msg in messages]
 
     def _post(self, request, event, data):
-        if not validate(data, 'messageType', 'message', 'author'):
-            return 400, dict(JSON_BAD_REQUEST, reason='request body failed validation')
+        try:
+            validate(data, 'messageType', 'message', 'author')
+        except ValidationError as e:
+            return 400, e.as_dict()
 
         message_type = MessageType.objects.filter(
             event_slug=event.slug,
@@ -175,8 +210,10 @@ class MessageView(ApiView):
 
         logger.warn('data %s', data)
 
-        if not validate(data, 'state'):
-            return 400, dict(JSON_BAD_REQUEST, reason='request body failed validation')
+        try:
+            validate(data, 'state')
+        except ValidationError as e:
+            return 400, e.as_dict()
 
         new_state = message.message_type.workflow.state_set.filter(
             slug=data['state'],
