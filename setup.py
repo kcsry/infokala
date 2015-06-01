@@ -10,7 +10,7 @@ def requirements(filename):
 
 setup(
     name='infokala',
-    version='0.0.0',
+    version='0.0.1',
     description='Info log management system for Desucon and Tracon',
     author='Santtu Pajukanta',
     author_email='japsu@desucon.fi',
