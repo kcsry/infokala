@@ -1,6 +1,6 @@
 Promise = require 'bluebird'
 
-apiUrl = "/api/v1/events/test"
+apiUrl = window.infokalaConfig.apiUrl
 
 
 exports.getAsync = (path) ->
@@ -32,8 +32,8 @@ exports.postJSON = (path, obj) ->
     JSON.parse event.target.responseText
 
 
-exports.getConfig = -> exports.getJSON "/config"
-exports.getMessagesSince = (since) -> exports.getJSON "/messages?since=#{encodeURIComponent(since)}"
-exports.getAllMessages = -> exports.getJSON "/messages"
-exports.sendMessage = (message) -> exports.postJSON "/messages", message
-exports.updateMessage = (messageId, update) -> exports.postJSON "/messages/#{messageId}", update
+exports.getConfig = -> Promise.resolve window.infokalaConfig # XXX hack
+exports.getMessagesSince = (since) -> exports.getJSON "/?since=#{encodeURIComponent(since)}"
+exports.getAllMessages = -> exports.getJSON "/"
+exports.sendMessage = (message) -> exports.postJSON "/", message
+exports.updateMessage = (messageId, update) -> exports.postJSON "/#{messageId}", update

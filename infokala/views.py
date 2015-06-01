@@ -2,6 +2,7 @@ import json
 import logging
 
 from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.generic import View
@@ -193,6 +194,23 @@ class MessageView(ApiView):
 
 
 class ConfigView(ApiView):
+    def get(self, request, event_slug, *args, **kwargs):
+        event = settings.INFOKALA_GET_EVENT_OR_404(event_slug)
+
+        if not self.authenticate(request, event):
+            return HttpResponse(
+                json.dumps(JSON_FORBIDDEN),
+                status=403,
+                content_type='application/json',
+            )
+
+        status, response = self._get(request, event, *args, **kwargs)
+        return HttpResponse(
+            "window.infokalaConfig = {};".format(json.dumps(response)),
+            status=status,
+            content_type='text/javascript',
+        )
+
     def _get(self, request, event):
         message_types = MessageType.objects.filter(event_slug=event.slug)
 
@@ -211,5 +229,6 @@ class ConfigView(ApiView):
             user=dict(
                 displayName=request.user.get_full_name() or request.user.username,
                 username=request.user.username
-            )
+            ),
+            apiUrl=reverse('infokala_messages_view', kwargs=dict(event_slug=event.slug)),
         )
