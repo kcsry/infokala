@@ -102,6 +102,8 @@ def validate(data_dict, *field_names):
 
 
 class ApiView(View):
+    http_method_names = ['get']
+
     def authenticate(self, request, event):
         """
         Override to perform access control. Return True to allow access or False to disallow.
@@ -146,6 +148,25 @@ class ApiView(View):
             )
 
         status, response = self._post(request, event, data, *args, **kwargs)
+
+        return HttpResponse(
+            json.dumps(response),
+            status=status,
+            content_type='application/json'
+        )
+
+    def delete(self, request, event_slug, *args, **kwargs):
+        event = settings.INFOKALA_GET_EVENT_OR_404(event_slug)
+
+        if not self.authenticate(request, event):
+            return HttpResponse(
+                json.dumps(JSON_FORBIDDEN),
+                status=403,
+                content_type='application/json',
+            )
+
+        status, response = self._delete(request, event, *args, **kwargs)
+
         return HttpResponse(
             json.dumps(response),
             status=status,
@@ -154,6 +175,8 @@ class ApiView(View):
 
 
 class MessagesView(ApiView):
+    http_method_names = ['get', 'post']
+
     def _get(self, request, event):
         criteria = dict(event_slug=event.slug)
 
@@ -165,6 +188,8 @@ class MessagesView(ApiView):
                 return 400, dict(JSON_BAD_REQUEST, reason='unable to parse since parameter')
 
             criteria.update(updated_at__gt=since)
+        else:
+            criteria.update(deleted_at__isnull=True)
 
         messages = Message.objects.filter(**criteria).order_by('created_at')
         return 200, [msg.as_dict() for msg in messages]
@@ -194,21 +219,25 @@ class MessagesView(ApiView):
 
 
 class MessageView(ApiView):
+    http_method_names = ['get', 'post', 'delete']
+
     def _get(self, request, event, message_id):
         message = Message.objects.filter(event_slug=event.slug, id=int(message_id)).first()
 
         if not message:
             return 404, JSON_NOT_FOUND
 
+        if message.is_deleted:
+            return 410, message.as_dict() # Gone
+
         return 200, message.as_dict()
 
+    # XXX actually PATCH instead of POST
     def _post(self, request, event, data, message_id):
-        message = Message.objects.filter(event_slug=event.slug, id=int(message_id)).first()
+        message = Message.objects.filter(event_slug=event.slug, id=int(message_id), deleted_at__isnull=True).first()
 
         if not message:
             return 404, JSON_NOT_FOUND
-
-        logger.warn('data %s', data)
 
         try:
             validate(data, 'state')
@@ -229,6 +258,16 @@ class MessageView(ApiView):
 
         return 200, message.as_dict()
 
+    def _delete(self, request, event, message_id):
+        message = Message.objects.filter(event_slug=event.slug, id=int(message_id), deleted_at__isnull=True).first()
+
+        if not message:
+            return 404, JSON_NOT_FOUND
+
+        message.mark_deleted(request.user)
+        message.save()
+
+        return 200, message.as_dict()
 
 class ConfigView(ApiView):
     def get(self, request, event_slug, *args, **kwargs):

@@ -27,7 +27,7 @@ html
     .infokala-push-top
 
     .container(style='display: none', data-bind='visible: true, foreach: visibleMessages')
-      .infokala-message(data-bind='click: $parent.cycleMessageState, css: { "infokala-cycleable": $parent.isMessageCycleable($data) }')
+      .infokala-message(data-bind='click: $parent.cycleMessageState, css: { "infokala-message-cycleable": $parent.isMessageCycleable($data), "infokala-message-deleted": isDeleted }')
         .row
           .col-md-12.text-muted
             .pull-right
@@ -38,6 +38,8 @@ html
                   span.label(data-bind='text: name, css: labelClass')
               | &emsp;
               span.label.label-default(data-bind='visible: $parent.shouldShowMessageType(), text: messageType.name')
+              | &emsp;
+              span.btn.btn-xs.btn-danger.infokala-delete-message-button(data-bind='click: $parent.deleteMessage, clickBubble: false') &times;
             .small(data-bind='text: formattedTime')
         .row(data-bind='css: {"infokala-inactive": !state.active}')
           strong.col-md-1(data-bind='text: author')

@@ -2,7 +2,7 @@ Promise = require 'bluebird'
 ko = require 'knockout'
 _ = require 'lodash'
 
-{getAllMessages, getMessagesSince, getConfig, sendMessage, updateMessage} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, getConfig, sendMessage, updateMessage, deleteMessage} = require './message_service.coffee'
 
 refreshMilliseconds = 5 * 1000
 
@@ -63,9 +63,9 @@ module.exports = class MainViewModel
 
   refresh: =>
     if @latestMessageTimestamp
-      getMessagesSince(@latestMessageTimestamp).then @newMessages
+      getMessagesSince(@latestMessageTimestamp).then @updateMessages
     else
-      getAllMessages().then @newMessages
+      getAllMessages().then @updateMessages
 
   updateMessages: (updatedMessages, updateLatestMessageTimestamp=true) =>
     updatedMessages.forEach (updatedMessage) =>
@@ -122,6 +122,11 @@ module.exports = class MainViewModel
 
     updateMessage(message.id, state: @nextState(message).slug).then (updatedMessage) =>
       @updateMessages [updatedMessage], false
+
+  deleteMessage: (message) =>
+    if window.confirm("Haluatko varmasti poistaa viestin?")
+      deleteMessage(message.id).then (deletedMessage) =>
+        @updateMessages [deletedMessage], false
 
   matchesFilter: (message) =>
     activeFilter = @activeFilter()

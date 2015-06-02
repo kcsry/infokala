@@ -4,6 +4,7 @@ from warnings import warn
 
 from django.conf import settings
 from django.db import models
+from django.utils.timezone import now
 
 
 TIME_FORMAT = '%H:%M:%S'
@@ -117,11 +118,22 @@ class Message(models.Model):
         blank=True,
         related_name='+',
     )
+    deleted_by = models.ForeignKey('auth.User',
+        verbose_name=u'poistaja',
+        null=True,
+        blank=True,
+        related_name='+',
+    )
 
     event_slug = models.CharField(verbose_name=u'tapahtuman tunniste', max_length=64)
 
     created_at = models.DateTimeField(verbose_name=u'lisäysaika', auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name=u'muokkausaika', auto_now=True)
+    deleted_at = models.DateTimeField(blank=True, null=True, verbose_name=u'poistoaika')
+
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
 
     class Meta:
         verbose_name = u'viesti'
@@ -149,12 +161,22 @@ class Message(models.Model):
         return dict(
             id=self.id,
             messageType=self.message_type.as_dict(),
-            message=self.message,
+
+            # will not give out the message text if the message is deleted
+            message=self.message if not self.is_deleted else None,
+
             author=self.author,
+            isDeleted=self.is_deleted,
             createdBy=self.created_by.username if self.created_by else None,
             updatedBy=self.updated_by.username if self.updated_by else None,
+            deletedBy=self.deleted_by.username if self.deleted_by else None,
             createdAt=self.created_at.isoformat(),
             updatedAt=self.updated_at.isoformat(),
+            deletedAt=self.deleted_at.isoformat() if self.deleted_at else None,
             state=self.state.as_dict(),
             formattedTime=self.created_at.time().strftime(TIME_FORMAT) if self.created_at else '',
         )
+
+    def mark_deleted(self, by_user=None):
+        self.deleted_by = by_user
+        self.deleted_at = now()

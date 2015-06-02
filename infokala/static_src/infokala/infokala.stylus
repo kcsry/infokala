@@ -19,11 +19,14 @@
 .infokala-inactive
   color #ccc
 
-.infokala-cycleable
+.infokala-message-cycleable
   cursor pointer
   cursor hand
 
 .infokala-next-state
+  display none
+
+.infokala-message-deleted
   display none
 
 @media screen
