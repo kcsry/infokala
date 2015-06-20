@@ -1,4 +1,4 @@
-require 'jquery'
+window.jQuery = require 'jquery'
 require 'bootstrap'
 
 ko = require 'knockout'
