@@ -15,7 +15,7 @@ setup(
     author='Santtu Pajukanta',
     author_email='japsu@desucon.fi',
     url='https://github.com/japsu/infokala',
-    packages=['infokala'],
+    packages=['infokala', 'infokala.migrations'],
     package_data={'infokala': ['static/infokala/*']},
     include_package_data=True,
     zip_safe=False,
