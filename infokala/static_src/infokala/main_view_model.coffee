@@ -33,6 +33,7 @@ module.exports = class MainViewModel
 
     @messageTypes = ko.observable []
     @messageTypeFilters = ko.observable []
+    @logoutUrl = ko.observable ""
     @activeFilter = ko.observable slug: null
 
     @messageTypesBySlug = ko.pureComputed => _.indexBy @messageTypes(), 'slug'
@@ -53,6 +54,7 @@ module.exports = class MainViewModel
         slug: null
       ].concat config.messageTypes
       @manualMessageType config.defaultMessageType
+      @logoutUrl config.logoutUrl
 
       @updateMessages messages
 

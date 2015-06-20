@@ -22,7 +22,7 @@ html
                 span(data-bind='text: user().displayName')
                 b.caret
               ul.dropdown-menu
-                li: a(href='/logout') Kirjaudu ulos
+                li: a(href, data-bind='attr: { href: logoutUrl }') Kirjaudu ulos
 
     .infokala-push-top
 
