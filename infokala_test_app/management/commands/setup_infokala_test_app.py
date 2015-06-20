@@ -67,8 +67,7 @@ class Command(BaseCommand):
         for name, slug, workflow in [
             (u'Löytötavarat', 'lost-and-found', lost_and_found_workflow),
             (u'Tehtävä', 'task', basic_workflow),
-            (u'Kysymys', 'question', basic_workflow),
-            (u'Tapahtuma', 'event', simple_workflow),
+            (u'Lokikirja', 'event', simple_workflow),
         ]:
             message_type, unused = MessageType.objects.get_or_create(
                 event_slug=event.slug,
