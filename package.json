@@ -1,6 +1,6 @@
 {
   "name": "infokala",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Info log management system for Desucon and Tracon",
   "main": "index.js",
   "scripts": {
