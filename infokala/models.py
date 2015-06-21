@@ -11,6 +11,7 @@ TIME_FORMAT = '%H:%M:%S'
 
 
 class Workflow(models.Model):
+    slug = models.CharField(verbose_name=u'tunniste', max_length=64, blank=True)
     name = models.CharField(verbose_name=u'nimi', max_length=128)
 
     class Meta:
@@ -30,6 +31,7 @@ class Workflow(models.Model):
 
     def as_dict(self):
         return dict(
+            slug=self.slug,
             name=self.name,
             states=[state.as_dict() for state in self.state_set.all().order_by('order')],
             initialState=self.state_set.get(initial=True).slug,
@@ -71,6 +73,7 @@ class State(models.Model):
             labelClass=self.label_class,
         )
 
+
 class MessageType(models.Model):
     event_slug = models.CharField(verbose_name=u'tapahtuman tunniste', max_length=64, db_index=True)
     name = models.CharField(verbose_name=u'nimi', max_length=128)
@@ -96,8 +99,9 @@ class MessageType(models.Model):
         return dict(
             name=self.name,
             slug=self.slug,
-            workflow=self.workflow.as_dict(),
+            workflow=self.workflow.slug,
         )
+
 
 class Message(models.Model):
     message_type = models.ForeignKey(MessageType, verbose_name=u'viestityyppi', related_name='message_set')
@@ -160,7 +164,7 @@ class Message(models.Model):
     def as_dict(self):
         return dict(
             id=self.id,
-            messageType=self.message_type.as_dict(),
+            messageType=self.message_type.slug,
 
             # will not give out the message text if the message is deleted
             message=self.message if not self.is_deleted else None,
@@ -173,7 +177,7 @@ class Message(models.Model):
             createdAt=self.created_at.isoformat(),
             updatedAt=self.updated_at.isoformat(),
             deletedAt=self.deleted_at.isoformat() if self.deleted_at else None,
-            state=self.state.as_dict(),
+            state=self.state.slug,
             formattedTime=self.created_at.time().strftime(TIME_FORMAT) if self.created_at else '',
         )
 

@@ -48,7 +48,17 @@ module.exports = class MainViewModel
       @user config.user
       @author config.user.displayName
 
-      @messageTypes config.messageTypes
+      # unpack denormalized message type workflow
+      # TODO should this be the work of a service?
+      config.workflows.forEach (workflow) ->
+        _.extend workflow,
+          statesBySlug: _.indexBy workflow.states, 'slug'
+      workflowsBySlug = _.indexBy config.workflows, 'slug'
+      console.log 'workflowsBySlug', workflowsBySlug
+      @messageTypes config.messageTypes.map (messageType) ->
+        _.extend messageType,
+          workflow: workflowsBySlug[messageType.workflow]
+
       @messageTypeFilters [
         name: 'Kaikki'
         slug: null
@@ -68,8 +78,16 @@ module.exports = class MainViewModel
       getAllMessages().then @updateMessages
 
   updateMessages: (updatedMessages, updateLatestMessageTimestamp=true) =>
+    messageTypesBySlug = @messageTypesBySlug()
+
     updatedMessages.forEach (updatedMessage) =>
       existingMessage = @messagesById[updatedMessage.id]
+
+      # unpack denormalized attributes
+      messageType = messageTypesBySlug[updatedMessage.messageType]
+      _.extend updatedMessage,
+        messageType: messageType
+        state: messageType.workflow.statesBySlug[updatedMessage.state]
 
       if existingMessage
         @messages.splice existingMessage.index, 1, updatedMessage
@@ -141,4 +159,5 @@ module.exports = class MainViewModel
 
   shouldShowMessageType: => !@activeFilter().slug
   isMessageCycleable: (message) =>
+    console?.log 'isMessageCycleable', message
     message.messageType.workflow.states.length > 1

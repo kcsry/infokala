@@ -9,7 +9,7 @@ from django.views.generic import View
 
 from dateutil.parser import parse as parse_datetime
 
-from .models import Message, MessageType
+from .models import Message, MessageType, Workflow
 from .forms import MessagesGetForm
 
 
@@ -98,7 +98,6 @@ def validate(data_dict, *field_names):
     type_mismatches = [key for (key, value) in data_dict.iteritems() if not isinstance(value, basestring)]
     if type_mismatches:
         raise FieldTypeMismatch(*type_mismatches)
-
 
 
 class ApiView(View):
@@ -269,6 +268,7 @@ class MessageView(ApiView):
 
         return 200, message.as_dict()
 
+
 class ConfigView(ApiView):
     def get(self, request, event_slug, *args, **kwargs):
         event = settings.INFOKALA_GET_EVENT_OR_404(event_slug)
@@ -289,6 +289,7 @@ class ConfigView(ApiView):
 
     def _get(self, request, event):
         message_types = MessageType.objects.filter(event_slug=event.slug)
+        workflows = Workflow.objects.filter(message_type_set__event_slug=event.slug)
 
         try:
             default_message_type = message_types.get(default=True)
@@ -301,6 +302,7 @@ class ConfigView(ApiView):
                 name=event.name,
             ),
             messageTypes=[mt.as_dict() for mt in message_types],
+            workflows=[wf.as_dict() for wf in workflows],
             defaultMessageType=default_message_type.slug,
             user=dict(
                 displayName=request.user.get_full_name() or request.user.username,
