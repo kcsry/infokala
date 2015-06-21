@@ -29,7 +29,7 @@ This starts a server on `localhost:8000` and watches for changes to files under 
 
     The MIT License (MIT)
 
-    Copyright (c) 2014 Santtu Pajukanta
+    Copyright (c) 2014–2015 Santtu Pajukanta
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
