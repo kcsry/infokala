@@ -19,10 +19,10 @@ html
           ul.nav.navbar-nav.navbar-right
             li.dropdown
               a.dropdown-toggle(href, data-toggle='dropdown')
-                span(data-bind='text: user().displayName')
+                span(data-bind='text: config.user.displayName')
                 b.caret
               ul.dropdown-menu
-                li: a(href, data-bind='attr: { href: logoutUrl }') Kirjaudu ulos
+                li: a(href, data-bind='attr: { href: config.logoutUrl }') Kirjaudu ulos
 
     .infokala-push-top
 
@@ -53,5 +53,5 @@ html
           .infokala-message-col(data-bind='css: { "col-md-9": shouldShowMessageType(), "col-md-11": !shouldShowMessageType(), "infokala-message-col-middle": shouldShowMessageType() }')
             input.form-control(data-bind='value: message', placeholder='Viesti...')
           .col-md-2.infokala-message-type-col(data-bind='visible: shouldShowMessageType()')
-            select.form-control(data-bind='options: messageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
+            select.form-control(data-bind='options: config.messageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
         input.hidden(type='submit')

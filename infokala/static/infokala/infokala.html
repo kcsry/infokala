@@ -17,9 +17,9 @@
             <li data-bind="css: { active: slug === $parent.activeFilter().slug }"><a href data-bind="text: name, click: $parent.activeFilter"></a></li>
           </ul>
           <ul class="nav navbar-nav navbar-right">
-            <li class="dropdown"><a href data-toggle="dropdown" class="dropdown-toggle"><span data-bind="text: user().displayName"></span><b class="caret"></b></a>
+            <li class="dropdown"><a href data-toggle="dropdown" class="dropdown-toggle"><span data-bind="text: config.user.displayName"></span><b class="caret"></b></a>
               <ul class="dropdown-menu">
-                <li><a href data-bind="attr: { href: logoutUrl }">Kirjaudu ulos</a></li>
+                <li><a href data-bind="attr: { href: config.logoutUrl }">Kirjaudu ulos</a></li>
               </ul>
             </li>
           </ul>
@@ -50,7 +50,7 @@
             <input data-bind="value: message" placeholder="Viesti..." class="form-control">
           </div>
           <div data-bind="visible: shouldShowMessageType()" class="col-md-2 infokala-message-type-col">
-            <select data-bind="options: messageTypes, optionsText: &quot;name&quot;, optionsValue: &quot;slug&quot;, value: manualMessageType" class="form-control"></select>
+            <select data-bind="options: config.messageTypes, optionsText: &quot;name&quot;, optionsValue: &quot;slug&quot;, value: manualMessageType" class="form-control"></select>
           </div>
         </div>
         <input type="submit" class="hidden">

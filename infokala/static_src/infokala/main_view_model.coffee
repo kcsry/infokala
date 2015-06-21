@@ -3,12 +3,13 @@ ko = require 'knockout'
 _ = require 'lodash'
 
 {getAllMessages, getMessagesSince, sendMessage, updateMessage, deleteMessage} = require './message_service.coffee'
-{getConfig} = require './config_service.coffee'
+{config} = require './config_service.coffee'
 
 refreshMilliseconds = 5 * 1000
 
 module.exports = class MainViewModel
   constructor: ->
+    @config = config
     @messages = ko.observableArray []
     @visibleMessages = ko.observableArray []
 
@@ -18,12 +19,12 @@ module.exports = class MainViewModel
       username: ""
 
     # New message author and message fields
-    @author = ko.observable ""
+    @author = ko.observable config.user.displayName
     @message = ko.observable ""
 
     # If the "All" filter is active, message type for a new message is selected via a dropdown field.
     # Otherwise it is the message type of the active filter.
-    @manualMessageType = ko.observable ""
+    @manualMessageType = ko.observable config.defaultMessageType
     @effectiveMessageType = ko.pureComputed =>
       activeFilter = @activeFilter()
 
@@ -32,12 +33,8 @@ module.exports = class MainViewModel
       else
         @manualMessageType()
 
-    @messageTypes = ko.observable []
-    @messageTypeFilters = ko.observable []
     @logoutUrl = ko.observable ""
     @activeFilter = ko.observable slug: null
-
-    @messageTypesBySlug = ko.pureComputed => _.indexBy @messageTypes(), 'slug'
 
     # Using ko.pureComputed on @messages would be O(n) on every new or changed message – suicide
     @messagesById = {}
@@ -45,18 +42,12 @@ module.exports = class MainViewModel
     @visibleMessages.subscribe @visibleMessageUpdated, null, 'arrayChange'
     @activeFilter.subscribe @filterChanged
 
-    Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
-      @user config.user
-      @author config.user.displayName
-      @messageTypes config.messageTypes
+    @messageTypeFilters = ko.observable [
+      name: 'Kaikki'
+      slug: null
+    ].concat config.messageTypes
 
-      @messageTypeFilters [
-        name: 'Kaikki'
-        slug: null
-      ].concat config.messageTypes
-      @manualMessageType config.defaultMessageType
-      @logoutUrl config.logoutUrl
-
+    getAllMessages().then (messages) =>
       @updateMessages messages
 
       # setup polling
@@ -69,16 +60,8 @@ module.exports = class MainViewModel
       getAllMessages().then @updateMessages
 
   updateMessages: (updatedMessages, updateLatestMessageTimestamp=true) =>
-    messageTypesBySlug = @messageTypesBySlug()
-
     updatedMessages.forEach (updatedMessage) =>
       existingMessage = @messagesById[updatedMessage.id]
-
-      # unpack denormalized attributes
-      messageType = messageTypesBySlug[updatedMessage.messageType]
-      _.extend updatedMessage,
-        messageType: messageType
-        state: messageType.workflow.statesBySlug[updatedMessage.state]
 
       if existingMessage
         @messages.splice existingMessage.index, 1, updatedMessage
@@ -150,5 +133,4 @@ module.exports = class MainViewModel
 
   shouldShowMessageType: => !@activeFilter().slug
   isMessageCycleable: (message) =>
-    console?.log 'isMessageCycleable', message
     message.messageType.workflow.states.length > 1

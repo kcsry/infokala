@@ -1,19 +1,15 @@
 _ = require 'lodash'
-Promise = require 'bluebird'
 
+exports.config = config = window.infokalaConfig
 
-exports.getConfig = ->
-  config = window.infokalaConfig
+config.workflows.forEach (workflow) ->
+  _.extend workflow,
+    statesBySlug: _.indexBy workflow.states, 'slug'
 
-  config.workflows.forEach (workflow) ->
-      _.extend workflow,
-        statesBySlug: _.indexBy workflow.states, 'slug'
+workflowsBySlug = _.indexBy config.workflows, 'slug'
 
-  workflowsBySlug = _.indexBy config.workflows, 'slug'
+config.messageTypes.forEach (messageType) ->
+  _.extend messageType,
+    workflow: workflowsBySlug[messageType.workflow]
 
-  # unpack denormalized message type workflow
-  config.messageTypes.forEach (messageType) ->
-    _.extend messageType,
-      workflow: workflowsBySlug[messageType.workflow]
-
-  Promise.resolve config
+config.messageTypesBySlug = _.indexBy config.messageTypes, 'slug'

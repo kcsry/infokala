@@ -1,6 +1,7 @@
+_ = require 'lodash'
 Promise = require 'bluebird'
 
-apiUrl = window.infokalaConfig.apiUrl
+{config} = require './config_service.coffee'
 
 # GET, DELETE, HEAD, OPTIONS
 exports.xhrAsync = (method, path) ->
@@ -13,12 +14,12 @@ exports.xhrAsync = (method, path) ->
 
 
 exports.getJSON = (path) ->
-  exports.xhrAsync('GET', apiUrl + path).then (event) ->
+  exports.xhrAsync('GET', config.apiUrl + path).then (event) ->
     JSON.parse event.target.responseText
 
 
 exports.deleteJSON = (path) ->
-  exports.xhrAsync('DELETE', apiUrl + path).then (event) ->
+  exports.xhrAsync('DELETE', config.apiUrl + path).then (event) ->
     JSON.parse event.target.responseText
 
 
@@ -34,12 +35,26 @@ exports.xhrBodyAsync = (method, path, data) ->
 
 
 exports.postJSON = (path, obj) ->
-  exports.xhrBodyAsync('POST', apiUrl + path, JSON.stringify(obj)).then (event) ->
+  exports.xhrBodyAsync('POST', config.apiUrl + path, JSON.stringify(obj)).then (event) ->
     JSON.parse event.target.responseText
 
 
-exports.getMessagesSince = (since) -> exports.getJSON "/?since=#{encodeURIComponent(since)}"
-exports.getAllMessages = -> exports.getJSON "/"
-exports.sendMessage = (message) -> exports.postJSON "/", message
-exports.updateMessage = (messageId, update) -> exports.postJSON "/#{messageId}", update
-exports.deleteMessage = (messageId) -> exports.deleteJSON "/#{messageId}"
+exports.getMessagesSince = (since) -> exports.getJSON("/?since=#{encodeURIComponent(since)}").then enrichMessages
+exports.getAllMessages = -> exports.getJSON('/').then enrichMessages
+exports.sendMessage = (message) -> exports.postJSON('/', message).then enrichMessage
+exports.updateMessage = (messageId, update) -> exports.postJSON("/#{messageId}", update).then enrichMessage
+exports.deleteMessage = (messageId) -> exports.deleteJSON("/#{messageId}").then enrichMessage
+
+
+enrichMessages = (messages) ->
+  messages.forEach enrichMessage
+  messages
+
+
+enrichMessage = (message) ->
+  # unpack denormalized attributes
+  messageType = config.messageTypesBySlug[message.messageType]
+
+  _.extend message,
+    messageType: messageType
+    state: messageType.workflow.statesBySlug[message.state]
