@@ -38,7 +38,6 @@ exports.postJSON = (path, obj) ->
     JSON.parse event.target.responseText
 
 
-exports.getConfig = -> Promise.resolve window.infokalaConfig # XXX hack
 exports.getMessagesSince = (since) -> exports.getJSON "/?since=#{encodeURIComponent(since)}"
 exports.getAllMessages = -> exports.getJSON "/"
 exports.sendMessage = (message) -> exports.postJSON "/", message

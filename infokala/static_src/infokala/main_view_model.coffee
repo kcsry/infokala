@@ -2,7 +2,8 @@ Promise = require 'bluebird'
 ko = require 'knockout'
 _ = require 'lodash'
 
-{getAllMessages, getMessagesSince, getConfig, sendMessage, updateMessage, deleteMessage} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, sendMessage, updateMessage, deleteMessage} = require './message_service.coffee'
+{getConfig} = require './config_service.coffee'
 
 refreshMilliseconds = 5 * 1000
 
@@ -47,17 +48,7 @@ module.exports = class MainViewModel
     Promise.all([getConfig(), getAllMessages()]).spread (config, messages) =>
       @user config.user
       @author config.user.displayName
-
-      # unpack denormalized message type workflow
-      # TODO should this be the work of a service?
-      config.workflows.forEach (workflow) ->
-        _.extend workflow,
-          statesBySlug: _.indexBy workflow.states, 'slug'
-      workflowsBySlug = _.indexBy config.workflows, 'slug'
-      console.log 'workflowsBySlug', workflowsBySlug
-      @messageTypes config.messageTypes.map (messageType) ->
-        _.extend messageType,
-          workflow: workflowsBySlug[messageType.workflow]
+      @messageTypes config.messageTypes
 
       @messageTypeFilters [
         name: 'Kaikki'
