@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from infokala.views import MessagesView, MessageView, ConfigView
 
 urlpatterns = patterns('',
-    url(r'^$', RedirectView.as_view(url='/events/test/messages/')),
+    url(r'^$', RedirectView.as_view(url='/events/test/messages/', permanent=False)),
     url(r'^events/[a-z0-9-]+/messages/$',
         login_required(serve),
         kwargs=dict(path='infokala/infokala.html'),
