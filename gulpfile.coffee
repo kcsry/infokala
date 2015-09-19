@@ -31,7 +31,7 @@ paths =
     destination: './infokala/static/infokala/'
     filename: 'infokala.html'
     source: './infokala/static_src/infokala/infokala.stylus'
-    watch: './infokala/static_Src/infokala/*.stylus'
+    watch: './infokala/static_src/infokala/*.stylus'
 
 
 handleError = (err) ->
