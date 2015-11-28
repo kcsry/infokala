@@ -6,8 +6,11 @@ from django.conf import settings
 from django.db import models
 from django.utils.timezone import now
 
+from dateutil.tz import tzlocal
+
 
 TIME_FORMAT = '%H:%M:%S'
+TZLOCAL = tzlocal()
 
 
 class Workflow(models.Model):
@@ -161,6 +164,10 @@ class Message(models.Model):
 
         return super(Message, self).save(*args, **kwargs)
 
+    @property
+    def formatted_time(self):
+        return self.created_at.astimezone(TZLOCAL).time().strftime(TIME_FORMAT)
+
     def as_dict(self):
         return dict(
             id=self.id,
@@ -178,7 +185,7 @@ class Message(models.Model):
             updatedAt=self.updated_at.isoformat(),
             deletedAt=self.deleted_at.isoformat() if self.deleted_at else None,
             state=self.state.slug,
-            formattedTime=self.created_at.time().strftime(TIME_FORMAT) if self.created_at else '',
+            formattedTime=self.formatted_time,
         )
 
     def mark_deleted(self, by_user=None):
