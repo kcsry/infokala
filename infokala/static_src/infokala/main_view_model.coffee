@@ -1,4 +1,3 @@
-Promise = require 'bluebird'
 ko = require 'knockout'
 _ = require 'lodash'
 

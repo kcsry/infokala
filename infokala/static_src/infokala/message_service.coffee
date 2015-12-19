@@ -3,40 +3,23 @@ Promise = require 'bluebird'
 
 {config} = require './config_service.coffee'
 
-# GET, DELETE, HEAD, OPTIONS
-exports.xhrAsync = (method, path) ->
-  new Promise (resolve, reject) ->
-    xhr = new XMLHttpRequest
-    xhr.addEventListener "error", reject
-    xhr.addEventListener "load", resolve
-    xhr.open method, path
-    xhr.send null
-
 
 exports.getJSON = (path) ->
-  exports.xhrAsync('GET', config.apiUrl + path).then (event) ->
-    JSON.parse event.target.responseText
+  fetch(config.apiUrl + path, credentials: 'same-origin').then (response) -> response.json()
 
 
 exports.deleteJSON = (path) ->
-  exports.xhrAsync('DELETE', config.apiUrl + path).then (event) ->
-    JSON.parse event.target.responseText
-
-
-# POST, PUT, PATCH
-exports.xhrBodyAsync = (method, path, data) ->
-  new Promise (resolve, reject) ->
-    xhr = new XMLHttpRequest
-    xhr.addEventListener "error", reject
-    xhr.addEventListener "load", resolve
-    xhr.open method, path
-    xhr.setRequestHeader "Content-type", "application/json"
-    xhr.send data
+  fetch(config.apiUrl + path, method: 'delete', credentials: 'same-origin').then (response) -> response.json()
 
 
 exports.postJSON = (path, obj) ->
-  exports.xhrBodyAsync('POST', config.apiUrl + path, JSON.stringify(obj)).then (event) ->
-    JSON.parse event.target.responseText
+  fetch(config.apiUrl + path,
+    method: 'post'
+    credentials: 'same-origin'
+    headers:
+      'Content-Type': 'application/json'
+    body: JSON.stringify(obj)
+  ).then (response) -> response.json()
 
 
 exports.getMessagesSince = (since) -> exports.getJSON("/?since=#{encodeURIComponent(since)}").then enrichMessages

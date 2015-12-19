@@ -32,7 +32,7 @@
       <div data-bind="click: $parent.cycleMessageState, css: { &quot;infokala-message-cycleable&quot;: $parent.isMessageCycleable($data), &quot;infokala-message-deleted&quot;: isDeleted }" class="infokala-message">
         <div class="row">
           <div class="col-md-12 text-muted">
-            <div class="pull-right"><span data-bind="visible: $parent.isMessageCycleable($data)"><span data-bind="text: state.name, css: state.labelClass" class="label"></span><span data-bind="with: $parent.nextState($data)" class="infokala-next-state"><span class="text-muted">&thinsp;&rArr;&thinsp;</span><span data-bind="text: name, css: labelClass" class="label"></span></span></span>&emsp;<span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default"></span>&emsp;<span data-bind="click: $parent.deleteMessage, clickBubble: false" class="btn btn-xs btn-danger infokala-delete-message-button">&times;</span></div>
+            <div class="pull-right"><span data-bind="visible: $parent.isMessageCycleable($data)"><span data-bind="with: $parent.nextState($data)" class="infokala-next-state"><span class="text-muted">&thinsp;&rArr;&thinsp;</span><span data-bind="text: name, css: labelClass" class="label"></span></span></span>&emsp;<span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default"></span>&emsp;<span data-bind="click: $parent.deleteMessage, clickBubble: false" class="btn btn-xs btn-danger infokala-delete-message-button">&times;</span></div>
             <div data-bind="text: formattedTime" class="small"></div>
           </div>
         </div>
