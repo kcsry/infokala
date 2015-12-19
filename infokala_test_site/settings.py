@@ -54,7 +54,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = mkpath('static')
 
-LOGIN_URL = '/admin/login'
+LOGIN_URL = '/admin/login/'
 
 def get_event(slug):
     from django.shortcuts import get_object_or_404
