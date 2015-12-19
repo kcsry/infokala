@@ -1,6 +1,7 @@
 path       = require 'path'
 
 browserify = require 'browserify'
+buffer     = require 'vinyl-buffer'
 CSSmin     = require 'gulp-minify-css'
 gulp       = require 'gulp'
 gutil      = require 'gulp-util'
@@ -8,6 +9,7 @@ jade       = require 'gulp-jade'
 nib        = require 'nib'
 prefix     = require 'gulp-autoprefixer'
 rename     = require 'gulp-rename'
+sourcemaps = require 'gulp-sourcemaps'
 source     = require 'vinyl-source-stream'
 streamify  = require 'gulp-streamify'
 stylus     = require 'gulp-stylus'
@@ -59,7 +61,13 @@ gulp.task 'scripts', ->
     .on 'error', handleError
     .pipe source paths.scripts.filename
 
+  if not production
+    build = build.pipe buffer()
+    build = build.pipe sourcemaps.init({loadMaps: true})
+
   build = build.pipe(streamify(uglify())) if production
+
+  build = build.pipe(sourcemaps.write('./')) if not production
 
   build
     .pipe gulp.dest paths.scripts.destination
