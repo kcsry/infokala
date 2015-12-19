@@ -25,6 +25,7 @@ _ = require('lodash');
 exports.config = config = window.infokalaConfig;
 
 config.workflows.forEach(function(workflow) {
+  console.log('workflow', workflow);
   return _.extend(workflow, {
     statesBySlug: _.indexBy(workflow.states, 'slug')
   });
@@ -33,6 +34,7 @@ config.workflows.forEach(function(workflow) {
 workflowsBySlug = _.indexBy(config.workflows, 'slug');
 
 config.messageTypes.forEach(function(messageType) {
+  console.log('messageType', messageType);
   return _.extend(messageType, {
     workflow: workflowsBySlug[messageType.workflow]
   });
@@ -323,10 +325,12 @@ enrichMessages = function(messages) {
 enrichMessage = function(message) {
   var messageType;
   messageType = config.messageTypesBySlug[message.messageType];
-  return _.extend(message, {
+  _.extend(message, {
     messageType: messageType,
     state: messageType.workflow.statesBySlug[message.state]
   });
+  console.log('message', message);
+  return message;
 };
 
 

@@ -26,15 +26,24 @@ class Command(BaseCommand):
         )
 
         basic_workflow, unused = Workflow.objects.get_or_create(
-            name=u'Perustyönkulku',
+            slug=u'basic',
+            defaults=dict(
+                name=u'Perustyönkulku',
+            ),
         )
 
         lost_and_found_workflow, unused = Workflow.objects.get_or_create(
-            name=u'Löytötavaratyönkulku',
+            slug=u'lost-and-found',
+            defaults=dict(
+                name=u'Löytötavaratyönkulku',
+            ),
         )
 
         simple_workflow, unused = Workflow.objects.get_or_create(
-            name=u'Yksinkertainen työnkulku',
+            slug=u'simple',
+            defaults=dict(
+                name=u'Yksinkertainen työnkulku',
+            ),
         )
 
         order = 0

@@ -14,7 +14,7 @@ TZLOCAL = tzlocal()
 
 
 class Workflow(models.Model):
-    slug = models.CharField(verbose_name=u'tunniste', max_length=64, blank=True)
+    slug = models.CharField(verbose_name=u'tunniste', max_length=64, unique=True)
     name = models.CharField(verbose_name=u'nimi', max_length=128)
 
     class Meta:
