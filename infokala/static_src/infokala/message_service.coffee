@@ -1,5 +1,6 @@
 _ = require 'lodash'
 Promise = require 'bluebird'
+ko = require 'knockout'
 
 {config} = require './config_service.coffee'
 
@@ -41,3 +42,4 @@ enrichMessage = (message) ->
   _.extend message,
     messageType: messageType
     state: messageType.workflow.statesBySlug[message.state]
+    isEditPending: ko.observable false

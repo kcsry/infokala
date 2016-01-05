@@ -17,7 +17,7 @@ ko.applyBindings((window.infokalaMainViewModel = new MainViewModel));
 
 
 
-},{"./main_view_model.coffee":3,"bootstrap":6,"es6-promise":20,"isomorphic-fetch":21,"jquery":22,"knockout":23}],2:[function(require,module,exports){
+},{"./main_view_model.coffee":3,"bootstrap":6,"es6-promise":20,"isomorphic-fetch":21,"jquery":23,"knockout":24}],2:[function(require,module,exports){
 var _, config, workflowsBySlug;
 
 _ = require('lodash');
@@ -25,7 +25,6 @@ _ = require('lodash');
 exports.config = config = window.infokalaConfig;
 
 config.workflows.forEach(function(workflow) {
-  console.log('workflow', workflow);
   return _.extend(workflow, {
     statesBySlug: _.indexBy(workflow.states, 'slug')
   });
@@ -34,7 +33,6 @@ config.workflows.forEach(function(workflow) {
 workflowsBySlug = _.indexBy(config.workflows, 'slug');
 
 config.messageTypes.forEach(function(messageType) {
-  console.log('messageType', messageType);
   return _.extend(messageType, {
     workflow: workflowsBySlug[messageType.workflow]
   });
@@ -44,8 +42,8 @@ config.messageTypesBySlug = _.indexBy(config.messageTypes, 'slug');
 
 
 
-},{"lodash":24}],3:[function(require,module,exports){
-var MainViewModel, _, config, deleteMessage, getAllMessages, getMessagesSince, ko, ref, refreshMilliseconds, sendMessage, updateMessage,
+},{"lodash":25}],3:[function(require,module,exports){
+var MainViewModel, _, config, deleteMessage, editMessage, getAllMessages, getMessagesSince, ko, ref, refreshMilliseconds, sendMessage, updateMessage,
   bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   slice = [].slice;
 
@@ -53,7 +51,7 @@ ko = require('knockout');
 
 _ = require('lodash');
 
-ref = require('./message_service.coffee'), getAllMessages = ref.getAllMessages, getMessagesSince = ref.getMessagesSince, sendMessage = ref.sendMessage, updateMessage = ref.updateMessage, deleteMessage = ref.deleteMessage;
+ref = require('./message_service.coffee'), getAllMessages = ref.getAllMessages, getMessagesSince = ref.getMessagesSince, sendMessage = ref.sendMessage, editMessage = ref.editMessage, updateMessage = ref.updateMessage, deleteMessage = ref.deleteMessage;
 
 config = require('./config_service.coffee').config;
 
@@ -61,13 +59,16 @@ refreshMilliseconds = 5 * 1000;
 
 module.exports = MainViewModel = (function() {
   function MainViewModel() {
+    this.handleEdit = bind(this.handleEdit, this);
     this.isMessageCycleable = bind(this.isMessageCycleable, this);
     this.shouldShowMessageType = bind(this.shouldShowMessageType, this);
     this.filterChanged = bind(this.filterChanged, this);
     this.matchesFilter = bind(this.matchesFilter, this);
     this.deleteMessage = bind(this.deleteMessage, this);
+    this.editMessage = bind(this.editMessage, this);
     this.cycleMessageState = bind(this.cycleMessageState, this);
     this.nextState = bind(this.nextState, this);
+    this.sendEditMessage = bind(this.sendEditMessage, this);
     this.sendMessage = bind(this.sendMessage, this);
     this.messageUpdated = bind(this.messageUpdated, this);
     this.visibleMessageUpdated = bind(this.visibleMessageUpdated, this);
@@ -76,6 +77,7 @@ module.exports = MainViewModel = (function() {
     this.config = config;
     this.messages = ko.observableArray([]);
     this.visibleMessages = ko.observableArray([]);
+    this.editingMessage = ko.observable(null);
     this.latestMessageTimestamp = null;
     this.user = ko.observable({
       displayName: "",
@@ -134,9 +136,11 @@ module.exports = MainViewModel = (function() {
         var existingMessage;
         existingMessage = _this.messagesById[updatedMessage.id];
         if (existingMessage) {
-          _this.messages.splice(existingMessage.index, 1, updatedMessage);
-          if (_this.matchesFilter(updatedMessage)) {
-            return _this.visibleMessages.splice(existingMessage.visibleIndex, 1, updatedMessage);
+          if (_this.editingMessage() !== updatedMessage.id) {
+            _this.messages.splice(existingMessage.index, 1, updatedMessage);
+            if (_this.matchesFilter(updatedMessage)) {
+              return _this.visibleMessages.splice(existingMessage.visibleIndex, 1, updatedMessage);
+            }
           }
         } else {
           _this.messages.push(updatedMessage);
@@ -197,6 +201,17 @@ module.exports = MainViewModel = (function() {
     })(this));
   };
 
+  MainViewModel.prototype.sendEditMessage = function(id, message) {
+    return updateMessage(id, {
+      state: message.state.slug,
+      message: message.message
+    }).then((function(_this) {
+      return function(newMessage) {
+        return _this.updateMessages([newMessage], false);
+      };
+    })(this));
+  };
+
   MainViewModel.prototype.nextState = function(message) {
     var currentStateIndex, states;
     states = message.messageType.workflow.states;
@@ -211,12 +226,17 @@ module.exports = MainViewModel = (function() {
       return;
     }
     return updateMessage(message.id, {
+      message: message.message,
       state: this.nextState(message).slug
     }).then((function(_this) {
       return function(updatedMessage) {
         return _this.updateMessages([updatedMessage], false);
       };
     })(this));
+  };
+
+  MainViewModel.prototype.editMessage = function(message) {
+    return this.editingMessage(this.editingMessage() === message.id ? null : message.id);
   };
 
   MainViewModel.prototype.deleteMessage = function(message) {
@@ -252,18 +272,35 @@ module.exports = MainViewModel = (function() {
     return message.messageType.workflow.states.length > 1;
   };
 
+  MainViewModel.prototype.handleEdit = function(message) {
+    var messageObj;
+    messageObj = _.filter(this.visibleMessages(), (function(_this) {
+      return function(o) {
+        return o.id === _this.editingMessage();
+      };
+    })(this))[0];
+    messageObj.isEditPending(true);
+    this.sendEditMessage(this.editingMessage(), messageObj).then((function(_this) {
+      return function() {
+        return _this.editingMessage(null);
+      };
+    })(this));
+  };
+
   return MainViewModel;
 
 })();
 
 
 
-},{"./config_service.coffee":2,"./message_service.coffee":4,"knockout":23,"lodash":24}],4:[function(require,module,exports){
-var Promise, _, config, enrichMessage, enrichMessages;
+},{"./config_service.coffee":2,"./message_service.coffee":4,"knockout":24,"lodash":25}],4:[function(require,module,exports){
+var Promise, _, config, enrichMessage, enrichMessages, ko;
 
 _ = require('lodash');
 
 Promise = require('bluebird');
+
+ko = require('knockout');
 
 config = require('./config_service.coffee').config;
 
@@ -325,29 +362,28 @@ enrichMessages = function(messages) {
 enrichMessage = function(message) {
   var messageType;
   messageType = config.messageTypesBySlug[message.messageType];
-  _.extend(message, {
+  return _.extend(message, {
     messageType: messageType,
-    state: messageType.workflow.statesBySlug[message.state]
+    state: messageType.workflow.statesBySlug[message.state],
+    isEditPending: ko.observable(false)
   });
-  console.log('message', message);
-  return message;
 };
 
 
 
-},{"./config_service.coffee":2,"bluebird":5,"lodash":24}],5:[function(require,module,exports){
+},{"./config_service.coffee":2,"bluebird":5,"knockout":24,"lodash":25}],5:[function(require,module,exports){
 (function (process,global){
 /* @preserve
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Petka Antonov
+ * Copyright (c) 2013-2015 Petka Antonov
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:</p>
+ * furnished to do so, subject to the following conditions:
  * 
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
@@ -362,7 +398,7 @@ enrichMessage = function(message) {
  * 
  */
 /**
- * bluebird build version 2.9.24
+ * bluebird build version 2.10.2
  * Features enabled: core, race, call_get, generators, map, nodeify, promisify, props, reduce, settle, some, cancel, using, filter, any, each, timers
 */
 !function(e){if("object"==typeof exports&&"undefined"!=typeof module)module.exports=e();else if("function"==typeof define&&define.amd)define([],e);else{var f;"undefined"!=typeof window?f=window:"undefined"!=typeof global?f=global:"undefined"!=typeof self&&(f=self),f.Promise=e()}}(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof _dereq_=="function"&&_dereq_;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof _dereq_=="function"&&_dereq_;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
@@ -433,8 +469,6 @@ Async.prototype.throwLater = function(fn, arg) {
         arg = fn;
         fn = function () { throw arg; };
     }
-    var domain = this._getDomain();
-    if (domain !== undefined) fn = domain.bind(fn);
     if (typeof setTimeout !== "undefined") {
         setTimeout(function() {
             fn(arg);
@@ -448,71 +482,18 @@ Async.prototype.throwLater = function(fn, arg) {
     }
 };
 
-Async.prototype._getDomain = function() {};
-
-if (util.isNode) {
-    var EventsModule = _dereq_("events");
-
-    var domainGetter = function() {
-        var domain = process.domain;
-        if (domain === null) return undefined;
-        return domain;
-    };
-
-    if (EventsModule.usingDomains) {
-        Async.prototype._getDomain = domainGetter;
-    } else {
-        var descriptor =
-            Object.getOwnPropertyDescriptor(EventsModule, "usingDomains");
-
-        if (!descriptor.configurable) {
-            process.on("domainsActivated", function() {
-                Async.prototype._getDomain = domainGetter;
-            });
-        } else {
-            var usingDomains = false;
-            Object.defineProperty(EventsModule, "usingDomains", {
-                configurable: false,
-                enumerable: true,
-                get: function() {
-                    return usingDomains;
-                },
-                set: function(value) {
-                    if (usingDomains || !value) return;
-                    usingDomains = true;
-                    Async.prototype._getDomain = domainGetter;
-                    util.toFastProperties(process);
-                    process.emit("domainsActivated");
-                }
-            });
-        }
-
-
-    }
-}
-
 function AsyncInvokeLater(fn, receiver, arg) {
-    var domain = this._getDomain();
-    if (domain !== undefined) fn = domain.bind(fn);
     this._lateQueue.push(fn, receiver, arg);
     this._queueTick();
 }
 
 function AsyncInvoke(fn, receiver, arg) {
-    var domain = this._getDomain();
-    if (domain !== undefined) fn = domain.bind(fn);
     this._normalQueue.push(fn, receiver, arg);
     this._queueTick();
 }
 
 function AsyncSettlePromises(promise) {
-    var domain = this._getDomain();
-    if (domain !== undefined) {
-        var fn = domain.bind(promise._settlePromises);
-        this._normalQueue.push(fn, promise, undefined);
-    } else {
-        this._normalQueue._pushOne(promise);
-    }
+    this._normalQueue._pushOne(promise);
     this._queueTick();
 }
 
@@ -521,13 +502,18 @@ if (!util.hasDevTools) {
     Async.prototype.invoke = AsyncInvoke;
     Async.prototype.settlePromises = AsyncSettlePromises;
 } else {
+    if (schedule.isStatic) {
+        schedule = function(fn) { setTimeout(fn, 0); };
+    }
     Async.prototype.invokeLater = function (fn, receiver, arg) {
         if (this._trampolineEnabled) {
             AsyncInvokeLater.call(this, fn, receiver, arg);
         } else {
-            setTimeout(function() {
-                fn.call(receiver, arg);
-            }, 100);
+            this._schedule(function() {
+                setTimeout(function() {
+                    fn.call(receiver, arg);
+                }, 100);
+            });
         }
     };
 
@@ -535,9 +521,9 @@ if (!util.hasDevTools) {
         if (this._trampolineEnabled) {
             AsyncInvoke.call(this, fn, receiver, arg);
         } else {
-            setTimeout(function() {
+            this._schedule(function() {
                 fn.call(receiver, arg);
-            }, 0);
+            });
         }
     };
 
@@ -545,16 +531,14 @@ if (!util.hasDevTools) {
         if (this._trampolineEnabled) {
             AsyncSettlePromises.call(this, promise);
         } else {
-            setTimeout(function() {
+            this._schedule(function() {
                 promise._settlePromises();
-            }, 0);
+            });
         }
     };
 }
 
 Async.prototype.invokeFirst = function (fn, receiver, arg) {
-    var domain = this._getDomain();
-    if (domain !== undefined) fn = domain.bind(fn);
     this._normalQueue.unshift(fn, receiver, arg);
     this._queueTick();
 };
@@ -592,7 +576,7 @@ Async.prototype._reset = function () {
 module.exports = new Async();
 module.exports.firstLineError = firstLineError;
 
-},{"./queue.js":28,"./schedule.js":31,"./util.js":38,"events":39}],3:[function(_dereq_,module,exports){
+},{"./queue.js":28,"./schedule.js":31,"./util.js":38}],3:[function(_dereq_,module,exports){
 "use strict";
 module.exports = function(Promise, INTERNAL, tryConvertToPromise) {
 var rejectThis = function(_, e) {
@@ -605,7 +589,6 @@ var targetRejected = function(e, context) {
 };
 
 var bindingResolved = function(thisArg, context) {
-    this._setBoundTo(thisArg);
     if (this._isPending()) {
         this._resolveCallback(context.target);
     }
@@ -620,6 +603,8 @@ Promise.prototype.bind = function (thisArg) {
     var ret = new Promise(INTERNAL);
     ret._propagateFrom(this, 1);
     var target = this._target();
+
+    ret._setBoundTo(maybePromise);
     if (maybePromise instanceof Promise) {
         var context = {
             promiseRejectionQueued: false,
@@ -631,7 +616,6 @@ Promise.prototype.bind = function (thisArg) {
         maybePromise._then(
             bindingResolved, bindingRejected, ret._progress, ret, context);
     } else {
-        ret._setBoundTo(thisArg);
         ret._resolveCallback(target);
     }
     return ret;
@@ -654,13 +638,12 @@ Promise.bind = function (thisArg, value) {
     var maybePromise = tryConvertToPromise(thisArg);
     var ret = new Promise(INTERNAL);
 
+    ret._setBoundTo(maybePromise);
     if (maybePromise instanceof Promise) {
-        maybePromise._then(function(thisArg) {
-            ret._setBoundTo(thisArg);
+        maybePromise._then(function() {
             ret._resolveCallback(value);
         }, ret._reject, ret._progress, ret, null);
     } else {
-        ret._setBoundTo(thisArg);
         ret._resolveCallback(value);
     }
     return ret;
@@ -1240,7 +1223,8 @@ var captureStackTrace = (function stackDetection() {
     catch(e) {
         hasStackAfterThrow = ("stack" in e);
     }
-    if (!("stack" in err) && hasStackAfterThrow) {
+    if (!("stack" in err) && hasStackAfterThrow &&
+        typeof Error.stackTraceLimit === "number") {
         stackFramePattern = v8stackFramePattern;
         formatStack = v8stackFormatter;
         return function captureStackTrace(o) {
@@ -1382,7 +1366,7 @@ function safePredicate(predicate, e) {
 CatchFilter.prototype.doFilter = function (e) {
     var cb = this._callback;
     var promise = this._promise;
-    var boundTo = promise._boundTo;
+    var boundTo = promise._boundValue();
     for (var i = 0, len = this._instances.length; i < len; ++i) {
         var item = this._instances[i];
         var itemIsErrorType = item === Error ||
@@ -1460,6 +1444,7 @@ return createContext;
 },{}],10:[function(_dereq_,module,exports){
 "use strict";
 module.exports = function(Promise, CapturedTrace) {
+var getDomain = Promise._getDomain;
 var async = _dereq_("./async.js");
 var Warning = _dereq_("./errors.js").Warning;
 var util = _dereq_("./util.js");
@@ -1470,11 +1455,19 @@ var debugging = false || (util.isNode &&
                     (!!process.env["BLUEBIRD_DEBUG"] ||
                      process.env["NODE_ENV"] === "development"));
 
+if (util.isNode && process.env["BLUEBIRD_DEBUG"] == 0) debugging = false;
+
 if (debugging) {
     async.disableTrampolineIfNecessary();
 }
 
+Promise.prototype._ignoreRejections = function() {
+    this._unsetRejectionIsUnhandled();
+    this._bitField = this._bitField | 16777216;
+};
+
 Promise.prototype._ensurePossibleRejectionHandled = function () {
+    if ((this._bitField & 16777216) !== 0) return;
     this._setRejectionIsUnhandled();
     async.invokeLater(this._notifyUnhandledRejection, this, undefined);
 };
@@ -1573,11 +1566,17 @@ Promise.prototype._warn = function(message) {
 };
 
 Promise.onPossiblyUnhandledRejection = function (fn) {
-    possiblyUnhandledRejection = typeof fn === "function" ? fn : undefined;
+    var domain = getDomain();
+    possiblyUnhandledRejection =
+        typeof fn === "function" ? (domain === null ? fn : domain.bind(fn))
+                                 : undefined;
 };
 
 Promise.onUnhandledRejectionHandled = function (fn) {
-    unhandledRejectionHandled = typeof fn === "function" ? fn : undefined;
+    var domain = getDomain();
+    unhandledRejectionHandled =
+        typeof fn === "function" ? (domain === null ? fn : domain.bind(fn))
+                                 : undefined;
 };
 
 Promise.longStackTraces = function () {
@@ -1610,7 +1609,6 @@ return function() {
 "use strict";
 var util = _dereq_("./util.js");
 var isPrimitive = util.isPrimitive;
-var wrapsPrimitiveReceiver = util.wrapsPrimitiveReceiver;
 
 module.exports = function(Promise) {
 var returner = function () {
@@ -1618,6 +1616,10 @@ var returner = function () {
 };
 var thrower = function () {
     throw this;
+};
+var returnUndefined = function() {};
+var throwUndefined = function() {
+    throw undefined;
 };
 
 var wrapper = function (value, action) {
@@ -1635,7 +1637,9 @@ var wrapper = function (value, action) {
 
 Promise.prototype["return"] =
 Promise.prototype.thenReturn = function (value) {
-    if (wrapsPrimitiveReceiver && isPrimitive(value)) {
+    if (value === undefined) return this.then(returnUndefined);
+
+    if (isPrimitive(value)) {
         return this._then(
             wrapper(value, 2),
             undefined,
@@ -1643,13 +1647,17 @@ Promise.prototype.thenReturn = function (value) {
             undefined,
             undefined
        );
+    } else if (value instanceof Promise) {
+        value._ignoreRejections();
     }
     return this._then(returner, undefined, undefined, value, undefined);
 };
 
 Promise.prototype["throw"] =
 Promise.prototype.thenThrow = function (reason) {
-    if (wrapsPrimitiveReceiver && isPrimitive(reason)) {
+    if (reason === undefined) return this.then(throwUndefined);
+
+    if (isPrimitive(reason)) {
         return this._then(
             wrapper(reason, 1),
             undefined,
@@ -1889,7 +1897,6 @@ Promise.filter = function (promises, fn, options) {
 "use strict";
 module.exports = function(Promise, NEXT_FILTER, tryConvertToPromise) {
 var util = _dereq_("./util.js");
-var wrapsPrimitiveReceiver = util.wrapsPrimitiveReceiver;
 var isPrimitive = util.isPrimitive;
 var thrower = util.thrower;
 
@@ -1911,7 +1918,7 @@ function throw$(r) {
 }
 function promisedFinally(ret, reasonOrValue, isFulfilled) {
     var then;
-    if (wrapsPrimitiveReceiver && isPrimitive(reasonOrValue)) {
+    if (isPrimitive(reasonOrValue)) {
         then = isFulfilled ? return$(reasonOrValue) : throw$(reasonOrValue);
     } else {
         then = isFulfilled ? returnThis : throwThis;
@@ -1924,7 +1931,7 @@ function finallyHandler(reasonOrValue) {
     var handler = this.handler;
 
     var ret = promise._isBound()
-                    ? handler.call(promise._boundTo)
+                    ? handler.call(promise._boundValue())
                     : handler();
 
     if (ret !== undefined) {
@@ -1949,7 +1956,7 @@ function tapHandler(value) {
     var handler = this.handler;
 
     var ret = promise._isBound()
-                    ? handler.call(promise._boundTo, value)
+                    ? handler.call(promise._boundValue(), value)
                     : handler(value);
 
     if (ret !== undefined) {
@@ -2240,6 +2247,7 @@ module.exports = function(Promise,
                           apiRejection,
                           tryConvertToPromise,
                           INTERNAL) {
+var getDomain = Promise._getDomain;
 var async = _dereq_("./async.js");
 var util = _dereq_("./util.js");
 var tryCatch = util.tryCatch;
@@ -2250,7 +2258,8 @@ var EMPTY_ARRAY = [];
 function MappingPromiseArray(promises, fn, limit, _filter) {
     this.constructor$(promises);
     this._promise._captureStackTrace();
-    this._callback = fn;
+    var domain = getDomain();
+    this._callback = domain === null ? fn : domain.bind(fn);
     this._preservedValues = _filter === INTERNAL
         ? new Array(this.length())
         : null;
@@ -2285,7 +2294,7 @@ MappingPromiseArray.prototype._promiseFulfilled = function (value, index) {
         if (preservedValues !== null) preservedValues[index] = value;
 
         var callback = this._callback;
-        var receiver = this._promise._boundTo;
+        var receiver = this._promise._boundValue();
         this._promise._pushContext();
         var ret = tryCatch(callback).call(receiver, value, index, length);
         this._promise._popContext();
@@ -2423,7 +2432,8 @@ var errorObj = util.errorObj;
 function spreadAdapter(val, nodeback) {
     var promise = this;
     if (!util.isArray(val)) return successAdapter.call(promise, val, nodeback);
-    var ret = tryCatch(nodeback).apply(promise._boundTo, [null].concat(val));
+    var ret =
+        tryCatch(nodeback).apply(promise._boundValue(), [null].concat(val));
     if (ret === errorObj) {
         async.throwLater(ret.e);
     }
@@ -2431,7 +2441,7 @@ function spreadAdapter(val, nodeback) {
 
 function successAdapter(val, nodeback) {
     var promise = this;
-    var receiver = promise._boundTo;
+    var receiver = promise._boundValue();
     var ret = val === undefined
         ? tryCatch(nodeback).call(receiver, null)
         : tryCatch(nodeback).call(receiver, null, val);
@@ -2447,13 +2457,13 @@ function errorAdapter(reason, nodeback) {
         newReason.cause = reason;
         reason = newReason;
     }
-    var ret = tryCatch(nodeback).call(promise._boundTo, reason);
+    var ret = tryCatch(nodeback).call(promise._boundValue(), reason);
     if (ret === errorObj) {
         async.throwLater(ret.e);
     }
 }
 
-Promise.prototype.asCallback = 
+Promise.prototype.asCallback =
 Promise.prototype.nodeify = function (nodeback, options) {
     if (typeof nodeback == "function") {
         var adapter = successAdapter;
@@ -2562,7 +2572,24 @@ var reflect = function() {
 var apiRejection = function(msg) {
     return Promise.reject(new TypeError(msg));
 };
+
 var util = _dereq_("./util.js");
+
+var getDomain;
+if (util.isNode) {
+    getDomain = function() {
+        var ret = process.domain;
+        if (ret === undefined) ret = null;
+        return ret;
+    };
+} else {
+    getDomain = function() {
+        return null;
+    };
+}
+util.notEnumerableProp(Promise, "_getDomain", getDomain);
+
+var UNDEFINED_BINDING = {};
 var async = _dereq_("./async.js");
 var errors = _dereq_("./errors.js");
 var TypeError = Promise.TypeError = errors.TypeError;
@@ -2761,8 +2788,12 @@ Promise.prototype._then = function (
         if (!haveInternalData) ret._setIsMigrated();
     }
 
-    var callbackIndex =
-        target._addCallbacks(didFulfill, didReject, didProgress, ret, receiver);
+    var callbackIndex = target._addCallbacks(didFulfill,
+                                             didReject,
+                                             didProgress,
+                                             ret,
+                                             receiver,
+                                             getDomain());
 
     if (target._isResolved() && !target._isSettlePromisesQueued()) {
         async.invoke(
@@ -2843,8 +2874,10 @@ Promise.prototype._receiverAt = function (index) {
         ? this._receiver0
         : this[
             index * 5 - 5 + 4];
-    if (ret === undefined && this._isBound()) {
-        return this._boundTo;
+    if (ret === UNDEFINED_BINDING) {
+        return undefined;
+    } else if (ret === undefined && this._isBound()) {
+        return this._boundValue();
     }
     return ret;
 };
@@ -2867,6 +2900,20 @@ Promise.prototype._rejectionHandlerAt = function (index) {
         : this[index * 5 - 5 + 1];
 };
 
+Promise.prototype._boundValue = function() {
+    var ret = this._boundTo;
+    if (ret !== undefined) {
+        if (ret instanceof Promise) {
+            if (ret.isFulfilled()) {
+                return ret.value();
+            } else {
+                return undefined;
+            }
+        }
+    }
+    return ret;
+};
+
 Promise.prototype._migrateCallbacks = function (follower, index) {
     var fulfill = follower._fulfillmentHandlerAt(index);
     var reject = follower._rejectionHandlerAt(index);
@@ -2874,7 +2921,8 @@ Promise.prototype._migrateCallbacks = function (follower, index) {
     var promise = follower._promiseAt(index);
     var receiver = follower._receiverAt(index);
     if (promise instanceof Promise) promise._setIsMigrated();
-    this._addCallbacks(fulfill, reject, progress, promise, receiver);
+    if (receiver === undefined) receiver = UNDEFINED_BINDING;
+    this._addCallbacks(fulfill, reject, progress, promise, receiver, null);
 };
 
 Promise.prototype._addCallbacks = function (
@@ -2882,7 +2930,8 @@ Promise.prototype._addCallbacks = function (
     reject,
     progress,
     promise,
-    receiver
+    receiver,
+    domain
 ) {
     var index = this._length();
 
@@ -2894,20 +2943,34 @@ Promise.prototype._addCallbacks = function (
     if (index === 0) {
         this._promise0 = promise;
         if (receiver !== undefined) this._receiver0 = receiver;
-        if (typeof fulfill === "function" && !this._isCarryingStackTrace())
-            this._fulfillmentHandler0 = fulfill;
-        if (typeof reject === "function") this._rejectionHandler0 = reject;
-        if (typeof progress === "function") this._progressHandler0 = progress;
+        if (typeof fulfill === "function" && !this._isCarryingStackTrace()) {
+            this._fulfillmentHandler0 =
+                domain === null ? fulfill : domain.bind(fulfill);
+        }
+        if (typeof reject === "function") {
+            this._rejectionHandler0 =
+                domain === null ? reject : domain.bind(reject);
+        }
+        if (typeof progress === "function") {
+            this._progressHandler0 =
+                domain === null ? progress : domain.bind(progress);
+        }
     } else {
         var base = index * 5 - 5;
         this[base + 3] = promise;
         this[base + 4] = receiver;
-        if (typeof fulfill === "function")
-            this[base + 0] = fulfill;
-        if (typeof reject === "function")
-            this[base + 1] = reject;
-        if (typeof progress === "function")
-            this[base + 2] = progress;
+        if (typeof fulfill === "function") {
+            this[base + 0] =
+                domain === null ? fulfill : domain.bind(fulfill);
+        }
+        if (typeof reject === "function") {
+            this[base + 1] =
+                domain === null ? reject : domain.bind(reject);
+        }
+        if (typeof progress === "function") {
+            this[base + 2] =
+                domain === null ? progress : domain.bind(progress);
+        }
     }
     this._setLength(index + 1);
     return index;
@@ -3002,7 +3065,7 @@ Promise.prototype._settlePromiseFromHandler = function (
     promise._pushContext();
     var x;
     if (receiver === APPLY && !this._isRejected()) {
-        x = tryCatch(handler).apply(this._boundTo, value);
+        x = tryCatch(handler).apply(this._boundValue(), value);
     } else {
         x = tryCatch(handler).call(receiver, value);
     }
@@ -3072,8 +3135,6 @@ Promise.prototype._settlePromiseAt = function (index) {
         this._isCarryingStackTrace() ? this._getCarriedStackTrace() : undefined;
     var value = this._settledValue;
     var receiver = this._receiverAt(index);
-
-
     this._clearCallbackDataAtIndex(index);
 
     if (typeof handler === "function") {
@@ -3200,7 +3261,10 @@ Promise.prototype._settlePromises = function () {
     }
 };
 
-Promise._makeSelfResolutionError = makeSelfResolutionError;
+util.notEnumerableProp(Promise,
+                       "_makeSelfResolutionError",
+                       makeSelfResolutionError);
+
 _dereq_("./progress.js")(Promise, PromiseArray);
 _dereq_("./method.js")(Promise, INTERNAL, tryConvertToPromise, apiRejection);
 _dereq_("./bind.js")(Promise, INTERNAL, tryConvertToPromise);
@@ -3335,7 +3399,7 @@ PromiseArray.prototype._init = function init(_, resolveValueIfEmpty) {
         if (maybePromise instanceof Promise) {
             maybePromise = maybePromise._target();
             if (isResolved) {
-                maybePromise._unsetRejectionIsUnhandled();
+                maybePromise._ignoreRejections();
             } else if (maybePromise._isPending()) {
                 maybePromise._proxyPromiseArray(this, i);
             } else if (maybePromise._isFulfilled()) {
@@ -3534,12 +3598,21 @@ var canEvaluate = util.canEvaluate;
 var TypeError = _dereq_("./errors").TypeError;
 var defaultSuffix = "Async";
 var defaultPromisified = {__isPromisified__: true};
-var noCopyPropsPattern =
-    /^(?:length|name|arguments|caller|callee|prototype|__isPromisified__)$/;
-var defaultFilter = function(name, func) {
+var noCopyProps = [
+    "arity",    "length",
+    "name",
+    "arguments",
+    "caller",
+    "callee",
+    "prototype",
+    "__isPromisified__"
+];
+var noCopyPropsPattern = new RegExp("^(?:" + noCopyProps.join("|") + ")$");
+
+var defaultFilter = function(name) {
     return util.isIdentifier(name) &&
         name.charAt(0) !== "_" &&
-        !util.isClass(func);
+        name !== "constructor";
 };
 
 function propsFilter(key) {
@@ -3683,6 +3756,7 @@ function(callback, receiver, originalName, fn) {
                         "nodebackForPromise",
                         "tryCatch",
                         "errorObj",
+                        "notEnumerableProp",
                         "INTERNAL","'use strict';                            \n\
         var ret = function (Parameters) {                                    \n\
             'use strict';                                                    \n\
@@ -3700,7 +3774,7 @@ function(callback, receiver, originalName, fn) {
             }                                                                \n\
             return promise;                                                  \n\
         };                                                                   \n\
-        ret.__isPromisified__ = true;                                        \n\
+        notEnumerableProp(ret, '__isPromisified__', true);                   \n\
         return ret;                                                          \n\
         "
         .replace("Parameters", parameterDeclaration(newParameterCount))
@@ -3714,6 +3788,7 @@ function(callback, receiver, originalName, fn) {
             nodebackForPromise,
             util.tryCatch,
             util.errorObj,
+            util.notEnumerableProp,
             INTERNAL
         );
 };
@@ -3740,7 +3815,7 @@ function makeNodePromisifiedClosure(callback, receiver, _, fn) {
         }
         return promise;
     }
-    promisified.__isPromisified__ = true;
+    util.notEnumerableProp(promisified, "__isPromisified__", true);
     return promisified;
 }
 
@@ -3757,11 +3832,16 @@ function promisifyAll(obj, suffix, filter, promisifier) {
         var key = methods[i];
         var fn = methods[i+1];
         var promisifiedKey = key + suffix;
-        obj[promisifiedKey] = promisifier === makeNodePromisified
-                ? makeNodePromisified(key, THIS, key, fn, suffix)
-                : promisifier(fn, function() {
-                    return makeNodePromisified(key, THIS, key, fn, suffix);
-                });
+        if (promisifier === makeNodePromisified) {
+            obj[promisifiedKey] =
+                makeNodePromisified(key, THIS, key, fn, suffix);
+        } else {
+            var promisified = promisifier(fn, function() {
+                return makeNodePromisified(key, THIS, key, fn, suffix);
+            });
+            util.notEnumerableProp(promisified, "__isPromisified__", true);
+            obj[promisifiedKey] = promisified;
+        }
     }
     util.toFastProperties(obj);
     return obj;
@@ -4043,6 +4123,7 @@ module.exports = function(Promise,
                           apiRejection,
                           tryConvertToPromise,
                           INTERNAL) {
+var getDomain = Promise._getDomain;
 var async = _dereq_("./async.js");
 var util = _dereq_("./util.js");
 var tryCatch = util.tryCatch;
@@ -4071,7 +4152,8 @@ function ReductionPromiseArray(promises, fn, accum, _each) {
         }
     }
     if (!(isPromise || this._zerothIsAccum)) this._gotAccum = true;
-    this._callback = fn;
+    var domain = getDomain();
+    this._callback = domain === null ? fn : domain.bind(fn);
     this._accum = accum;
     if (!rejected) async.invoke(init, this, undefined);
 }
@@ -4125,7 +4207,7 @@ ReductionPromiseArray.prototype._promiseFulfilled = function (value, index) {
     if (!gotAccum) return;
 
     var callback = this._callback;
-    var receiver = this._promise._boundTo;
+    var receiver = this._promise._boundValue();
     var ret;
 
     for (var i = this._reducingIndex; i < length; ++i) {
@@ -4187,24 +4269,20 @@ Promise.reduce = function (promises, fn, initialValue, _each) {
 },{"./async.js":2,"./util.js":38}],31:[function(_dereq_,module,exports){
 "use strict";
 var schedule;
+var util = _dereq_("./util");
 var noAsyncScheduler = function() {
     throw new Error("No async scheduler available\u000a\u000a    See http://goo.gl/m3OTXk\u000a");
 };
-if (_dereq_("./util.js").isNode) {
-    var version = process.versions.node.split(".").map(Number);
-    schedule = (version[0] === 0 && version[1] > 10) || (version[0] > 0)
-        ? global.setImmediate : process.nextTick;
-
-    if (!schedule) {
-        if (typeof setImmediate !== "undefined") {
-            schedule = setImmediate;
-        } else if (typeof setTimeout !== "undefined") {
-            schedule = setTimeout;
-        } else {
-            schedule = noAsyncScheduler;
-        }
-    }
-} else if (typeof MutationObserver !== "undefined") {
+if (util.isNode && typeof MutationObserver === "undefined") {
+    var GlobalSetImmediate = global.setImmediate;
+    var ProcessNextTick = process.nextTick;
+    schedule = util.isRecentNode
+                ? function(fn) { GlobalSetImmediate.call(global, fn); }
+                : function(fn) { ProcessNextTick.call(process, fn); };
+} else if ((typeof MutationObserver !== "undefined") &&
+          !(typeof window !== "undefined" &&
+            window.navigator &&
+            window.navigator.standalone)) {
     schedule = function(fn) {
         var div = document.createElement("div");
         var observer = new MutationObserver(fn);
@@ -4225,7 +4303,7 @@ if (_dereq_("./util.js").isNode) {
 }
 module.exports = schedule;
 
-},{"./util.js":38}],32:[function(_dereq_,module,exports){
+},{"./util":38}],32:[function(_dereq_,module,exports){
 "use strict";
 module.exports =
     function(Promise, PromiseArray) {
@@ -4554,12 +4632,7 @@ function doThenable(x, then, context) {
 
     function resolveFromThenable(value) {
         if (!promise) return;
-        if (x === value) {
-            promise._rejectCallback(
-                Promise._makeSelfResolutionError(), false, true);
-        } else {
-            promise._resolveCallback(value);
-        }
+        promise._resolveCallback(value);
         promise = null;
     }
 
@@ -4589,10 +4662,16 @@ var TimeoutError = Promise.TimeoutError;
 
 var afterTimeout = function (promise, message) {
     if (!promise.isPending()) return;
-    if (typeof message !== "string") {
-        message = "operation timed out";
+    
+    var err;
+    if(!util.isPrimitive(message) && (message instanceof Error)) {
+        err = message;
+    } else {
+        if (typeof message !== "string") {
+            message = "operation timed out";
+        }
+        err = new TimeoutError(message);
     }
-    var err = new TimeoutError(message);
     util.markAsOriginatingFromRejection(err);
     promise._attachExtraTrace(err);
     promise._cancel(err);
@@ -4779,10 +4858,20 @@ module.exports = function (Promise, apiRejection, tryConvertToPromise,
                         "you must pass at least 2 arguments to Promise.using");
         var fn = arguments[len - 1];
         if (typeof fn !== "function") return apiRejection("fn must be a function\u000a\u000a    See http://goo.gl/916lJJ\u000a");
-        len--;
+
+        var input;
+        var spreadArgs = true;
+        if (len === 2 && Array.isArray(arguments[0])) {
+            input = arguments[0];
+            len = input.length;
+            spreadArgs = false;
+        } else {
+            input = arguments;
+            len--;
+        }
         var resources = new Array(len);
         for (var i = 0; i < len; ++i) {
-            var resource = arguments[i];
+            var resource = input[i];
             if (Disposer.isDisposer(resource)) {
                 var disposer = resource;
                 resource = resource.promise();
@@ -4806,7 +4895,8 @@ module.exports = function (Promise, apiRejection, tryConvertToPromise,
                 promise._pushContext();
                 var ret;
                 try {
-                    ret = fn.apply(undefined, vals);
+                    ret = spreadArgs
+                        ? fn.apply(undefined, vals) : fn.call(undefined,  vals);
                 } finally {
                     promise._popContext();
                 }
@@ -4869,7 +4959,9 @@ var errorObj = {e: {}};
 var tryCatchTarget;
 function tryCatcher() {
     try {
-        return tryCatchTarget.apply(this, arguments);
+        var target = tryCatchTarget;
+        tryCatchTarget = null;
+        return target.apply(this, arguments);
     } catch (e) {
         errorObj.e = e;
         return errorObj;
@@ -4930,6 +5022,7 @@ function withAppended(target, appendee) {
 function getDataPropertyOrDefault(obj, key, defaultValue) {
     if (es5.isES5) {
         var desc = Object.getOwnPropertyDescriptor(obj, key);
+
         if (desc != null) {
             return desc.get == null && desc.set == null
                     ? desc.value
@@ -4952,23 +5045,32 @@ function notEnumerableProp(obj, name, value) {
     return obj;
 }
 
-
-var wrapsPrimitiveReceiver = (function() {
-    return this !== "string";
-}).call("string");
-
 function thrower(r) {
     throw r;
 }
 
 var inheritedDataKeys = (function() {
+    var excludedPrototypes = [
+        Array.prototype,
+        Object.prototype,
+        Function.prototype
+    ];
+
+    var isExcludedProto = function(val) {
+        for (var i = 0; i < excludedPrototypes.length; ++i) {
+            if (excludedPrototypes[i] === val) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     if (es5.isES5) {
-        var oProto = Object.prototype;
         var getKeys = Object.getOwnPropertyNames;
         return function(obj) {
             var ret = [];
             var visitedKeys = Object.create(null);
-            while (obj != null && obj !== oProto) {
+            while (obj != null && !isExcludedProto(obj)) {
                 var keys;
                 try {
                     keys = getKeys(obj);
@@ -4989,11 +5091,23 @@ var inheritedDataKeys = (function() {
             return ret;
         };
     } else {
+        var hasProp = {}.hasOwnProperty;
         return function(obj) {
+            if (isExcludedProto(obj)) return [];
             var ret = [];
+
             /*jshint forin:false */
-            for (var key in obj) {
-                ret.push(key);
+            enumeration: for (var key in obj) {
+                if (hasProp.call(obj, key)) {
+                    ret.push(key);
+                } else {
+                    for (var i = 0; i < excludedPrototypes.length; ++i) {
+                        if (hasProp.call(excludedPrototypes[i], key)) {
+                            continue enumeration;
+                        }
+                    }
+                    ret.push(key);
+                }
             }
             return ret;
         };
@@ -5001,13 +5115,22 @@ var inheritedDataKeys = (function() {
 
 })();
 
+var thisAssignmentPattern = /this\s*\.\s*\S+\s*=/;
 function isClass(fn) {
     try {
         if (typeof fn === "function") {
             var keys = es5.names(fn.prototype);
-            if (es5.isES5) return keys.length > 1;
-            return keys.length > 0 &&
-                   !(keys.length === 1 && keys[0] === "constructor");
+
+            var hasMethods = es5.isES5 && keys.length > 1;
+            var hasMethodsOtherThanConstructor = keys.length > 0 &&
+                !(keys.length === 1 && keys[0] === "constructor");
+            var hasThisAssignmentAndStaticMethods =
+                thisAssignmentPattern.test(fn + "") && es5.names(fn).length > 0;
+
+            if (hasMethods || hasMethodsOtherThanConstructor ||
+                hasThisAssignmentAndStaticMethods) {
+                return true;
+            }
         }
         return false;
     } catch (e) {
@@ -5087,7 +5210,9 @@ function copyDescriptors(from, to, filter) {
     for (var i = 0; i < keys.length; ++i) {
         var key = keys[i];
         if (filter(key)) {
-            es5.defineProperty(to, key, es5.getDescriptor(from, key));
+            try {
+                es5.defineProperty(to, key, es5.getDescriptor(from, key));
+            } catch (ignore) {}
         }
     }
 }
@@ -5109,7 +5234,6 @@ var ret = {
     inherits: inherits,
     withAppended: withAppended,
     maybeWrapAsError: maybeWrapAsError,
-    wrapsPrimitiveReceiver: wrapsPrimitiveReceiver,
     toFastProperties: toFastProperties,
     filledRange: filledRange,
     toString: safeToString,
@@ -5124,313 +5248,17 @@ var ret = {
     isNode: typeof process !== "undefined" &&
         classString(process).toLowerCase() === "[object process]"
 };
+ret.isRecentNode = ret.isNode && (function() {
+    var version = process.versions.node.split(".").map(Number);
+    return (version[0] === 0 && version[1] > 10) || (version[0] > 0);
+})();
+
+if (ret.isNode) ret.toFastProperties(process);
+
 try {throw new Error(); } catch (e) {ret.lastLineError = e;}
 module.exports = ret;
 
-},{"./es5.js":14}],39:[function(_dereq_,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-function EventEmitter() {
-  this._events = this._events || {};
-  this._maxListeners = this._maxListeners || undefined;
-}
-module.exports = EventEmitter;
-
-// Backwards-compat with node 0.10.x
-EventEmitter.EventEmitter = EventEmitter;
-
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-
-// By default EventEmitters will print a warning if more than 10 listeners are
-// added to it. This is a useful default which helps finding memory leaks.
-EventEmitter.defaultMaxListeners = 10;
-
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-EventEmitter.prototype.setMaxListeners = function(n) {
-  if (!isNumber(n) || n < 0 || isNaN(n))
-    throw TypeError('n must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-
-EventEmitter.prototype.emit = function(type) {
-  var er, handler, len, args, i, listeners;
-
-  if (!this._events)
-    this._events = {};
-
-  // If there is no 'error' event listener then throw.
-  if (type === 'error') {
-    if (!this._events.error ||
-        (isObject(this._events.error) && !this._events.error.length)) {
-      er = arguments[1];
-      if (er instanceof Error) {
-        throw er; // Unhandled 'error' event
-      }
-      throw TypeError('Uncaught, unspecified "error" event.');
-    }
-  }
-
-  handler = this._events[type];
-
-  if (isUndefined(handler))
-    return false;
-
-  if (isFunction(handler)) {
-    switch (arguments.length) {
-      // fast cases
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      // slower
-      default:
-        len = arguments.length;
-        args = new Array(len - 1);
-        for (i = 1; i < len; i++)
-          args[i - 1] = arguments[i];
-        handler.apply(this, args);
-    }
-  } else if (isObject(handler)) {
-    len = arguments.length;
-    args = new Array(len - 1);
-    for (i = 1; i < len; i++)
-      args[i - 1] = arguments[i];
-
-    listeners = handler.slice();
-    len = listeners.length;
-    for (i = 0; i < len; i++)
-      listeners[i].apply(this, args);
-  }
-
-  return true;
-};
-
-EventEmitter.prototype.addListener = function(type, listener) {
-  var m;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events)
-    this._events = {};
-
-  // To avoid recursion in the case that type === "newListener"! Before
-  // adding it to the listeners, first emit "newListener".
-  if (this._events.newListener)
-    this.emit('newListener', type,
-              isFunction(listener.listener) ?
-              listener.listener : listener);
-
-  if (!this._events[type])
-    // Optimize the case of one listener. Don't need the extra array object.
-    this._events[type] = listener;
-  else if (isObject(this._events[type]))
-    // If we've already got an array, just append.
-    this._events[type].push(listener);
-  else
-    // Adding the second element, need to change to array.
-    this._events[type] = [this._events[type], listener];
-
-  // Check for listener leak
-  if (isObject(this._events[type]) && !this._events[type].warned) {
-    var m;
-    if (!isUndefined(this._maxListeners)) {
-      m = this._maxListeners;
-    } else {
-      m = EventEmitter.defaultMaxListeners;
-    }
-
-    if (m && m > 0 && this._events[type].length > m) {
-      this._events[type].warned = true;
-      console.error('(node) warning: possible EventEmitter memory ' +
-                    'leak detected. %d listeners added. ' +
-                    'Use emitter.setMaxListeners() to increase limit.',
-                    this._events[type].length);
-      if (typeof console.trace === 'function') {
-        // not supported in IE 10
-        console.trace();
-      }
-    }
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.once = function(type, listener) {
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  var fired = false;
-
-  function g() {
-    this.removeListener(type, g);
-
-    if (!fired) {
-      fired = true;
-      listener.apply(this, arguments);
-    }
-  }
-
-  g.listener = listener;
-  this.on(type, g);
-
-  return this;
-};
-
-// emits a 'removeListener' event iff the listener was removed
-EventEmitter.prototype.removeListener = function(type, listener) {
-  var list, position, length, i;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events || !this._events[type])
-    return this;
-
-  list = this._events[type];
-  length = list.length;
-  position = -1;
-
-  if (list === listener ||
-      (isFunction(list.listener) && list.listener === listener)) {
-    delete this._events[type];
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-
-  } else if (isObject(list)) {
-    for (i = length; i-- > 0;) {
-      if (list[i] === listener ||
-          (list[i].listener && list[i].listener === listener)) {
-        position = i;
-        break;
-      }
-    }
-
-    if (position < 0)
-      return this;
-
-    if (list.length === 1) {
-      list.length = 0;
-      delete this._events[type];
-    } else {
-      list.splice(position, 1);
-    }
-
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.removeAllListeners = function(type) {
-  var key, listeners;
-
-  if (!this._events)
-    return this;
-
-  // not listening for removeListener, no need to emit
-  if (!this._events.removeListener) {
-    if (arguments.length === 0)
-      this._events = {};
-    else if (this._events[type])
-      delete this._events[type];
-    return this;
-  }
-
-  // emit removeListener for all listeners on all events
-  if (arguments.length === 0) {
-    for (key in this._events) {
-      if (key === 'removeListener') continue;
-      this.removeAllListeners(key);
-    }
-    this.removeAllListeners('removeListener');
-    this._events = {};
-    return this;
-  }
-
-  listeners = this._events[type];
-
-  if (isFunction(listeners)) {
-    this.removeListener(type, listeners);
-  } else {
-    // LIFO order
-    while (listeners.length)
-      this.removeListener(type, listeners[listeners.length - 1]);
-  }
-  delete this._events[type];
-
-  return this;
-};
-
-EventEmitter.prototype.listeners = function(type) {
-  var ret;
-  if (!this._events || !this._events[type])
-    ret = [];
-  else if (isFunction(this._events[type]))
-    ret = [this._events[type]];
-  else
-    ret = this._events[type].slice();
-  return ret;
-};
-
-EventEmitter.listenerCount = function(emitter, type) {
-  var ret;
-  if (!emitter._events || !emitter._events[type])
-    ret = 0;
-  else if (isFunction(emitter._events[type]))
-    ret = 1;
-  else
-    ret = emitter._events[type].length;
-  return ret;
-};
-
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
-
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
-
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-
-function isUndefined(arg) {
-  return arg === void 0;
-}
-
-},{}]},{},[4])(4)
+},{"./es5.js":14}]},{},[4])(4)
 });                    ;if (typeof window !== 'undefined' && window !== null) {                               window.P = window.Promise;                                                     } else if (typeof self !== 'undefined' && self !== null) {                             self.P = self.Promise;                                                         }
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 
@@ -5450,7 +5278,7 @@ require('../../js/tab.js')
 require('../../js/affix.js')
 },{"../../js/affix.js":7,"../../js/alert.js":8,"../../js/button.js":9,"../../js/carousel.js":10,"../../js/collapse.js":11,"../../js/dropdown.js":12,"../../js/modal.js":13,"../../js/popover.js":14,"../../js/scrollspy.js":15,"../../js/tab.js":16,"../../js/tooltip.js":17,"../../js/transition.js":18}],7:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: affix.js v3.3.4
+ * Bootstrap: affix.js v3.3.6
  * http://getbootstrap.com/javascript/#affix
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -5479,7 +5307,7 @@ require('../../js/affix.js')
     this.checkPosition()
   }
 
-  Affix.VERSION  = '3.3.4'
+  Affix.VERSION  = '3.3.6'
 
   Affix.RESET    = 'affix affix-top affix-bottom'
 
@@ -5529,7 +5357,7 @@ require('../../js/affix.js')
     var offset       = this.options.offset
     var offsetTop    = offset.top
     var offsetBottom = offset.bottom
-    var scrollHeight = $(document.body).height()
+    var scrollHeight = Math.max($(document).height(), $(document.body).height())
 
     if (typeof offset != 'object')         offsetBottom = offsetTop = offset
     if (typeof offsetTop == 'function')    offsetTop    = offset.top(this.$element)
@@ -5614,7 +5442,7 @@ require('../../js/affix.js')
 
 },{}],8:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: alert.js v3.3.4
+ * Bootstrap: alert.js v3.3.6
  * http://getbootstrap.com/javascript/#alerts
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -5633,7 +5461,7 @@ require('../../js/affix.js')
     $(el).on('click', dismiss, this.close)
   }
 
-  Alert.VERSION = '3.3.4'
+  Alert.VERSION = '3.3.6'
 
   Alert.TRANSITION_DURATION = 150
 
@@ -5710,7 +5538,7 @@ require('../../js/affix.js')
 
 },{}],9:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: button.js v3.3.4
+ * Bootstrap: button.js v3.3.6
  * http://getbootstrap.com/javascript/#buttons
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -5730,7 +5558,7 @@ require('../../js/affix.js')
     this.isLoading = false
   }
 
-  Button.VERSION  = '3.3.4'
+  Button.VERSION  = '3.3.6'
 
   Button.DEFAULTS = {
     loadingText: 'loading...'
@@ -5742,7 +5570,7 @@ require('../../js/affix.js')
     var val  = $el.is('input') ? 'val' : 'html'
     var data = $el.data()
 
-    state = state + 'Text'
+    state += 'Text'
 
     if (data.resetText == null) $el.data('resetText', $el[val]())
 
@@ -5767,15 +5595,19 @@ require('../../js/affix.js')
     if ($parent.length) {
       var $input = this.$element.find('input')
       if ($input.prop('type') == 'radio') {
-        if ($input.prop('checked') && this.$element.hasClass('active')) changed = false
-        else $parent.find('.active').removeClass('active')
+        if ($input.prop('checked')) changed = false
+        $parent.find('.active').removeClass('active')
+        this.$element.addClass('active')
+      } else if ($input.prop('type') == 'checkbox') {
+        if (($input.prop('checked')) !== this.$element.hasClass('active')) changed = false
+        this.$element.toggleClass('active')
       }
-      if (changed) $input.prop('checked', !this.$element.hasClass('active')).trigger('change')
+      $input.prop('checked', this.$element.hasClass('active'))
+      if (changed) $input.trigger('change')
     } else {
       this.$element.attr('aria-pressed', !this.$element.hasClass('active'))
+      this.$element.toggleClass('active')
     }
-
-    if (changed) this.$element.toggleClass('active')
   }
 
 
@@ -5818,7 +5650,7 @@ require('../../js/affix.js')
       var $btn = $(e.target)
       if (!$btn.hasClass('btn')) $btn = $btn.closest('.btn')
       Plugin.call($btn, 'toggle')
-      e.preventDefault()
+      if (!($(e.target).is('input[type="radio"]') || $(e.target).is('input[type="checkbox"]'))) e.preventDefault()
     })
     .on('focus.bs.button.data-api blur.bs.button.data-api', '[data-toggle^="button"]', function (e) {
       $(e.target).closest('.btn').toggleClass('focus', /^focus(in)?$/.test(e.type))
@@ -5828,7 +5660,7 @@ require('../../js/affix.js')
 
 },{}],10:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: carousel.js v3.3.4
+ * Bootstrap: carousel.js v3.3.6
  * http://getbootstrap.com/javascript/#carousel
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -5859,7 +5691,7 @@ require('../../js/affix.js')
       .on('mouseleave.bs.carousel', $.proxy(this.cycle, this))
   }
 
-  Carousel.VERSION  = '3.3.4'
+  Carousel.VERSION  = '3.3.6'
 
   Carousel.TRANSITION_DURATION = 600
 
@@ -6067,7 +5899,7 @@ require('../../js/affix.js')
 
 },{}],11:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: collapse.js v3.3.4
+ * Bootstrap: collapse.js v3.3.6
  * http://getbootstrap.com/javascript/#collapse
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -6097,7 +5929,7 @@ require('../../js/affix.js')
     if (this.options.toggle) this.toggle()
   }
 
-  Collapse.VERSION  = '3.3.4'
+  Collapse.VERSION  = '3.3.6'
 
   Collapse.TRANSITION_DURATION = 350
 
@@ -6280,7 +6112,7 @@ require('../../js/affix.js')
 
 },{}],12:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: dropdown.js v3.3.4
+ * Bootstrap: dropdown.js v3.3.6
  * http://getbootstrap.com/javascript/#dropdowns
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -6300,7 +6132,41 @@ require('../../js/affix.js')
     $(element).on('click.bs.dropdown', this.toggle)
   }
 
-  Dropdown.VERSION = '3.3.4'
+  Dropdown.VERSION = '3.3.6'
+
+  function getParent($this) {
+    var selector = $this.attr('data-target')
+
+    if (!selector) {
+      selector = $this.attr('href')
+      selector = selector && /#[A-Za-z]/.test(selector) && selector.replace(/.*(?=#[^\s]*$)/, '') // strip for ie7
+    }
+
+    var $parent = selector && $(selector)
+
+    return $parent && $parent.length ? $parent : $this.parent()
+  }
+
+  function clearMenus(e) {
+    if (e && e.which === 3) return
+    $(backdrop).remove()
+    $(toggle).each(function () {
+      var $this         = $(this)
+      var $parent       = getParent($this)
+      var relatedTarget = { relatedTarget: this }
+
+      if (!$parent.hasClass('open')) return
+
+      if (e && e.type == 'click' && /input|textarea/i.test(e.target.tagName) && $.contains($parent[0], e.target)) return
+
+      $parent.trigger(e = $.Event('hide.bs.dropdown', relatedTarget))
+
+      if (e.isDefaultPrevented()) return
+
+      $this.attr('aria-expanded', 'false')
+      $parent.removeClass('open').trigger($.Event('hidden.bs.dropdown', relatedTarget))
+    })
+  }
 
   Dropdown.prototype.toggle = function (e) {
     var $this = $(this)
@@ -6315,7 +6181,10 @@ require('../../js/affix.js')
     if (!isActive) {
       if ('ontouchstart' in document.documentElement && !$parent.closest('.navbar-nav').length) {
         // if mobile we use a backdrop because click events don't delegate
-        $('<div class="dropdown-backdrop"/>').insertAfter($(this)).on('click', clearMenus)
+        $(document.createElement('div'))
+          .addClass('dropdown-backdrop')
+          .insertAfter($(this))
+          .on('click', clearMenus)
       }
 
       var relatedTarget = { relatedTarget: this }
@@ -6329,7 +6198,7 @@ require('../../js/affix.js')
 
       $parent
         .toggleClass('open')
-        .trigger('shown.bs.dropdown', relatedTarget)
+        .trigger($.Event('shown.bs.dropdown', relatedTarget))
     }
 
     return false
@@ -6348,55 +6217,23 @@ require('../../js/affix.js')
     var $parent  = getParent($this)
     var isActive = $parent.hasClass('open')
 
-    if ((!isActive && e.which != 27) || (isActive && e.which == 27)) {
+    if (!isActive && e.which != 27 || isActive && e.which == 27) {
       if (e.which == 27) $parent.find(toggle).trigger('focus')
       return $this.trigger('click')
     }
 
     var desc = ' li:not(.disabled):visible a'
-    var $items = $parent.find('[role="menu"]' + desc + ', [role="listbox"]' + desc)
+    var $items = $parent.find('.dropdown-menu' + desc)
 
     if (!$items.length) return
 
     var index = $items.index(e.target)
 
-    if (e.which == 38 && index > 0)                 index--                        // up
-    if (e.which == 40 && index < $items.length - 1) index++                        // down
-    if (!~index)                                      index = 0
+    if (e.which == 38 && index > 0)                 index--         // up
+    if (e.which == 40 && index < $items.length - 1) index++         // down
+    if (!~index)                                    index = 0
 
     $items.eq(index).trigger('focus')
-  }
-
-  function clearMenus(e) {
-    if (e && e.which === 3) return
-    $(backdrop).remove()
-    $(toggle).each(function () {
-      var $this         = $(this)
-      var $parent       = getParent($this)
-      var relatedTarget = { relatedTarget: this }
-
-      if (!$parent.hasClass('open')) return
-
-      $parent.trigger(e = $.Event('hide.bs.dropdown', relatedTarget))
-
-      if (e.isDefaultPrevented()) return
-
-      $this.attr('aria-expanded', 'false')
-      $parent.removeClass('open').trigger('hidden.bs.dropdown', relatedTarget)
-    })
-  }
-
-  function getParent($this) {
-    var selector = $this.attr('data-target')
-
-    if (!selector) {
-      selector = $this.attr('href')
-      selector = selector && /#[A-Za-z]/.test(selector) && selector.replace(/.*(?=#[^\s]*$)/, '') // strip for ie7
-    }
-
-    var $parent = selector && $(selector)
-
-    return $parent && $parent.length ? $parent : $this.parent()
   }
 
 
@@ -6436,14 +6273,13 @@ require('../../js/affix.js')
     .on('click.bs.dropdown.data-api', '.dropdown form', function (e) { e.stopPropagation() })
     .on('click.bs.dropdown.data-api', toggle, Dropdown.prototype.toggle)
     .on('keydown.bs.dropdown.data-api', toggle, Dropdown.prototype.keydown)
-    .on('keydown.bs.dropdown.data-api', '[role="menu"]', Dropdown.prototype.keydown)
-    .on('keydown.bs.dropdown.data-api', '[role="listbox"]', Dropdown.prototype.keydown)
+    .on('keydown.bs.dropdown.data-api', '.dropdown-menu', Dropdown.prototype.keydown)
 
 }(jQuery);
 
 },{}],13:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: modal.js v3.3.4
+ * Bootstrap: modal.js v3.3.6
  * http://getbootstrap.com/javascript/#modals
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -6477,7 +6313,7 @@ require('../../js/affix.js')
     }
   }
 
-  Modal.VERSION  = '3.3.4'
+  Modal.VERSION  = '3.3.6'
 
   Modal.TRANSITION_DURATION = 300
   Modal.BACKDROP_TRANSITION_DURATION = 150
@@ -6534,9 +6370,7 @@ require('../../js/affix.js')
         that.$element[0].offsetWidth // force reflow
       }
 
-      that.$element
-        .addClass('in')
-        .attr('aria-hidden', false)
+      that.$element.addClass('in')
 
       that.enforceFocus()
 
@@ -6570,7 +6404,6 @@ require('../../js/affix.js')
 
     this.$element
       .removeClass('in')
-      .attr('aria-hidden', true)
       .off('click.dismiss.bs.modal')
       .off('mouseup.dismiss.bs.modal')
 
@@ -6634,7 +6467,8 @@ require('../../js/affix.js')
     if (this.isShown && this.options.backdrop) {
       var doAnimate = $.support.transition && animate
 
-      this.$backdrop = $('<div class="modal-backdrop ' + animate + '" />')
+      this.$backdrop = $(document.createElement('div'))
+        .addClass('modal-backdrop ' + animate)
         .appendTo(this.$body)
 
       this.$element.on('click.dismiss.bs.modal', $.proxy(function (e) {
@@ -6784,7 +6618,7 @@ require('../../js/affix.js')
 
 },{}],14:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: popover.js v3.3.4
+ * Bootstrap: popover.js v3.3.6
  * http://getbootstrap.com/javascript/#popovers
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -6804,7 +6638,7 @@ require('../../js/affix.js')
 
   if (!$.fn.tooltip) throw new Error('Popover requires tooltip.js')
 
-  Popover.VERSION  = '3.3.4'
+  Popover.VERSION  = '3.3.6'
 
   Popover.DEFAULTS = $.extend({}, $.fn.tooltip.Constructor.DEFAULTS, {
     placement: 'right',
@@ -6894,7 +6728,7 @@ require('../../js/affix.js')
 
 },{}],15:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: scrollspy.js v3.3.4
+ * Bootstrap: scrollspy.js v3.3.6
  * http://getbootstrap.com/javascript/#scrollspy
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -6923,7 +6757,7 @@ require('../../js/affix.js')
     this.process()
   }
 
-  ScrollSpy.VERSION  = '3.3.4'
+  ScrollSpy.VERSION  = '3.3.6'
 
   ScrollSpy.DEFAULTS = {
     offset: 10
@@ -7068,7 +6902,7 @@ require('../../js/affix.js')
 
 },{}],16:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: tab.js v3.3.4
+ * Bootstrap: tab.js v3.3.6
  * http://getbootstrap.com/javascript/#tabs
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -7083,10 +6917,12 @@ require('../../js/affix.js')
   // ====================
 
   var Tab = function (element) {
+    // jscs:disable requireDollarBeforejQueryAssignment
     this.element = $(element)
+    // jscs:enable requireDollarBeforejQueryAssignment
   }
 
-  Tab.VERSION = '3.3.4'
+  Tab.VERSION = '3.3.6'
 
   Tab.TRANSITION_DURATION = 150
 
@@ -7134,7 +6970,7 @@ require('../../js/affix.js')
     var $active    = container.find('> .active')
     var transition = callback
       && $.support.transition
-      && (($active.length && $active.hasClass('fade')) || !!container.find('> .fade').length)
+      && ($active.length && $active.hasClass('fade') || !!container.find('> .fade').length)
 
     function next() {
       $active
@@ -7223,7 +7059,7 @@ require('../../js/affix.js')
 
 },{}],17:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: tooltip.js v3.3.4
+ * Bootstrap: tooltip.js v3.3.6
  * http://getbootstrap.com/javascript/#tooltip
  * Inspired by the original jQuery.tipsy by Jason Frame
  * ========================================================================
@@ -7245,11 +7081,12 @@ require('../../js/affix.js')
     this.timeout    = null
     this.hoverState = null
     this.$element   = null
+    this.inState    = null
 
     this.init('tooltip', element, options)
   }
 
-  Tooltip.VERSION  = '3.3.4'
+  Tooltip.VERSION  = '3.3.6'
 
   Tooltip.TRANSITION_DURATION = 150
 
@@ -7274,7 +7111,8 @@ require('../../js/affix.js')
     this.type      = type
     this.$element  = $(element)
     this.options   = this.getOptions(options)
-    this.$viewport = this.options.viewport && $(this.options.viewport.selector || this.options.viewport)
+    this.$viewport = this.options.viewport && $($.isFunction(this.options.viewport) ? this.options.viewport.call(this, this.$element) : (this.options.viewport.selector || this.options.viewport))
+    this.inState   = { click: false, hover: false, focus: false }
 
     if (this.$element[0] instanceof document.constructor && !this.options.selector) {
       throw new Error('`selector` option must be specified when initializing ' + this.type + ' on the window.document object!')
@@ -7333,14 +7171,18 @@ require('../../js/affix.js')
     var self = obj instanceof this.constructor ?
       obj : $(obj.currentTarget).data('bs.' + this.type)
 
-    if (self && self.$tip && self.$tip.is(':visible')) {
-      self.hoverState = 'in'
-      return
-    }
-
     if (!self) {
       self = new this.constructor(obj.currentTarget, this.getDelegateOptions())
       $(obj.currentTarget).data('bs.' + this.type, self)
+    }
+
+    if (obj instanceof $.Event) {
+      self.inState[obj.type == 'focusin' ? 'focus' : 'hover'] = true
+    }
+
+    if (self.tip().hasClass('in') || self.hoverState == 'in') {
+      self.hoverState = 'in'
+      return
     }
 
     clearTimeout(self.timeout)
@@ -7354,6 +7196,14 @@ require('../../js/affix.js')
     }, self.options.delay.show)
   }
 
+  Tooltip.prototype.isInStateTrue = function () {
+    for (var key in this.inState) {
+      if (this.inState[key]) return true
+    }
+
+    return false
+  }
+
   Tooltip.prototype.leave = function (obj) {
     var self = obj instanceof this.constructor ?
       obj : $(obj.currentTarget).data('bs.' + this.type)
@@ -7362,6 +7212,12 @@ require('../../js/affix.js')
       self = new this.constructor(obj.currentTarget, this.getDelegateOptions())
       $(obj.currentTarget).data('bs.' + this.type, self)
     }
+
+    if (obj instanceof $.Event) {
+      self.inState[obj.type == 'focusout' ? 'focus' : 'hover'] = false
+    }
+
+    if (self.isInStateTrue()) return
 
     clearTimeout(self.timeout)
 
@@ -7409,6 +7265,7 @@ require('../../js/affix.js')
         .data('bs.' + this.type, this)
 
       this.options.container ? $tip.appendTo(this.options.container) : $tip.insertAfter(this.$element)
+      this.$element.trigger('inserted.bs.' + this.type)
 
       var pos          = this.getPosition()
       var actualWidth  = $tip[0].offsetWidth
@@ -7416,13 +7273,12 @@ require('../../js/affix.js')
 
       if (autoPlace) {
         var orgPlacement = placement
-        var $container   = this.options.container ? $(this.options.container) : this.$element.parent()
-        var containerDim = this.getPosition($container)
+        var viewportDim = this.getPosition(this.$viewport)
 
-        placement = placement == 'bottom' && pos.bottom + actualHeight > containerDim.bottom ? 'top'    :
-                    placement == 'top'    && pos.top    - actualHeight < containerDim.top    ? 'bottom' :
-                    placement == 'right'  && pos.right  + actualWidth  > containerDim.width  ? 'left'   :
-                    placement == 'left'   && pos.left   - actualWidth  < containerDim.left   ? 'right'  :
+        placement = placement == 'bottom' && pos.bottom + actualHeight > viewportDim.bottom ? 'top'    :
+                    placement == 'top'    && pos.top    - actualHeight < viewportDim.top    ? 'bottom' :
+                    placement == 'right'  && pos.right  + actualWidth  > viewportDim.width  ? 'left'   :
+                    placement == 'left'   && pos.left   - actualWidth  < viewportDim.left   ? 'right'  :
                     placement
 
         $tip
@@ -7463,8 +7319,8 @@ require('../../js/affix.js')
     if (isNaN(marginTop))  marginTop  = 0
     if (isNaN(marginLeft)) marginLeft = 0
 
-    offset.top  = offset.top  + marginTop
-    offset.left = offset.left + marginLeft
+    offset.top  += marginTop
+    offset.left += marginLeft
 
     // $.fn.offset doesn't round pixel values
     // so we use setOffset directly with our own function B-0
@@ -7546,7 +7402,7 @@ require('../../js/affix.js')
 
   Tooltip.prototype.fixTitle = function () {
     var $e = this.$element
-    if ($e.attr('title') || typeof ($e.attr('data-original-title')) != 'string') {
+    if ($e.attr('title') || typeof $e.attr('data-original-title') != 'string') {
       $e.attr('data-original-title', $e.attr('title') || '').attr('title', '')
     }
   }
@@ -7601,7 +7457,7 @@ require('../../js/affix.js')
       var rightEdgeOffset = pos.left + viewportPadding + actualWidth
       if (leftEdgeOffset < viewportDimensions.left) { // left overflow
         delta.left = viewportDimensions.left - leftEdgeOffset
-      } else if (rightEdgeOffset > viewportDimensions.width) { // right overflow
+      } else if (rightEdgeOffset > viewportDimensions.right) { // right overflow
         delta.left = viewportDimensions.left + viewportDimensions.width - rightEdgeOffset
       }
     }
@@ -7627,7 +7483,13 @@ require('../../js/affix.js')
   }
 
   Tooltip.prototype.tip = function () {
-    return (this.$tip = this.$tip || $(this.options.template))
+    if (!this.$tip) {
+      this.$tip = $(this.options.template)
+      if (this.$tip.length != 1) {
+        throw new Error(this.type + ' `template` option must consist of exactly 1 top-level element!')
+      }
+    }
+    return this.$tip
   }
 
   Tooltip.prototype.arrow = function () {
@@ -7656,7 +7518,13 @@ require('../../js/affix.js')
       }
     }
 
-    self.tip().hasClass('in') ? self.leave(self) : self.enter(self)
+    if (e) {
+      self.inState.click = !self.inState.click
+      if (self.isInStateTrue()) self.enter(self)
+      else self.leave(self)
+    } else {
+      self.tip().hasClass('in') ? self.leave(self) : self.enter(self)
+    }
   }
 
   Tooltip.prototype.destroy = function () {
@@ -7664,6 +7532,12 @@ require('../../js/affix.js')
     clearTimeout(this.timeout)
     this.hide(function () {
       that.$element.off('.' + that.type).removeData('bs.' + that.type)
+      if (that.$tip) {
+        that.$tip.detach()
+      }
+      that.$tip = null
+      that.$arrow = null
+      that.$viewport = null
     })
   }
 
@@ -7701,7 +7575,7 @@ require('../../js/affix.js')
 
 },{}],18:[function(require,module,exports){
 /* ========================================================================
- * Bootstrap: transition.js v3.3.4
+ * Bootstrap: transition.js v3.3.6
  * http://getbootstrap.com/javascript/#transitions
  * ========================================================================
  * Copyright 2011-2015 Twitter, Inc.
@@ -8805,7 +8679,390 @@ process.chdir = function (dir) {
 require('whatwg-fetch');
 module.exports = self.fetch.bind(self);
 
-},{"whatwg-fetch":25}],22:[function(require,module,exports){
+},{"whatwg-fetch":22}],22:[function(require,module,exports){
+(function() {
+  'use strict';
+
+  if (self.fetch) {
+    return
+  }
+
+  function normalizeName(name) {
+    if (typeof name !== 'string') {
+      name = String(name)
+    }
+    if (/[^a-z0-9\-#$%&'*+.\^_`|~]/i.test(name)) {
+      throw new TypeError('Invalid character in header field name')
+    }
+    return name.toLowerCase()
+  }
+
+  function normalizeValue(value) {
+    if (typeof value !== 'string') {
+      value = String(value)
+    }
+    return value
+  }
+
+  function Headers(headers) {
+    this.map = {}
+
+    if (headers instanceof Headers) {
+      headers.forEach(function(value, name) {
+        this.append(name, value)
+      }, this)
+
+    } else if (headers) {
+      Object.getOwnPropertyNames(headers).forEach(function(name) {
+        this.append(name, headers[name])
+      }, this)
+    }
+  }
+
+  Headers.prototype.append = function(name, value) {
+    name = normalizeName(name)
+    value = normalizeValue(value)
+    var list = this.map[name]
+    if (!list) {
+      list = []
+      this.map[name] = list
+    }
+    list.push(value)
+  }
+
+  Headers.prototype['delete'] = function(name) {
+    delete this.map[normalizeName(name)]
+  }
+
+  Headers.prototype.get = function(name) {
+    var values = this.map[normalizeName(name)]
+    return values ? values[0] : null
+  }
+
+  Headers.prototype.getAll = function(name) {
+    return this.map[normalizeName(name)] || []
+  }
+
+  Headers.prototype.has = function(name) {
+    return this.map.hasOwnProperty(normalizeName(name))
+  }
+
+  Headers.prototype.set = function(name, value) {
+    this.map[normalizeName(name)] = [normalizeValue(value)]
+  }
+
+  Headers.prototype.forEach = function(callback, thisArg) {
+    Object.getOwnPropertyNames(this.map).forEach(function(name) {
+      this.map[name].forEach(function(value) {
+        callback.call(thisArg, value, name, this)
+      }, this)
+    }, this)
+  }
+
+  function consumed(body) {
+    if (body.bodyUsed) {
+      return Promise.reject(new TypeError('Already read'))
+    }
+    body.bodyUsed = true
+  }
+
+  function fileReaderReady(reader) {
+    return new Promise(function(resolve, reject) {
+      reader.onload = function() {
+        resolve(reader.result)
+      }
+      reader.onerror = function() {
+        reject(reader.error)
+      }
+    })
+  }
+
+  function readBlobAsArrayBuffer(blob) {
+    var reader = new FileReader()
+    reader.readAsArrayBuffer(blob)
+    return fileReaderReady(reader)
+  }
+
+  function readBlobAsText(blob) {
+    var reader = new FileReader()
+    reader.readAsText(blob)
+    return fileReaderReady(reader)
+  }
+
+  var support = {
+    blob: 'FileReader' in self && 'Blob' in self && (function() {
+      try {
+        new Blob();
+        return true
+      } catch(e) {
+        return false
+      }
+    })(),
+    formData: 'FormData' in self,
+    arrayBuffer: 'ArrayBuffer' in self
+  }
+
+  function Body() {
+    this.bodyUsed = false
+
+
+    this._initBody = function(body) {
+      this._bodyInit = body
+      if (typeof body === 'string') {
+        this._bodyText = body
+      } else if (support.blob && Blob.prototype.isPrototypeOf(body)) {
+        this._bodyBlob = body
+      } else if (support.formData && FormData.prototype.isPrototypeOf(body)) {
+        this._bodyFormData = body
+      } else if (!body) {
+        this._bodyText = ''
+      } else if (support.arrayBuffer && ArrayBuffer.prototype.isPrototypeOf(body)) {
+        // Only support ArrayBuffers for POST method.
+        // Receiving ArrayBuffers happens via Blobs, instead.
+      } else {
+        throw new Error('unsupported BodyInit type')
+      }
+    }
+
+    if (support.blob) {
+      this.blob = function() {
+        var rejected = consumed(this)
+        if (rejected) {
+          return rejected
+        }
+
+        if (this._bodyBlob) {
+          return Promise.resolve(this._bodyBlob)
+        } else if (this._bodyFormData) {
+          throw new Error('could not read FormData body as blob')
+        } else {
+          return Promise.resolve(new Blob([this._bodyText]))
+        }
+      }
+
+      this.arrayBuffer = function() {
+        return this.blob().then(readBlobAsArrayBuffer)
+      }
+
+      this.text = function() {
+        var rejected = consumed(this)
+        if (rejected) {
+          return rejected
+        }
+
+        if (this._bodyBlob) {
+          return readBlobAsText(this._bodyBlob)
+        } else if (this._bodyFormData) {
+          throw new Error('could not read FormData body as text')
+        } else {
+          return Promise.resolve(this._bodyText)
+        }
+      }
+    } else {
+      this.text = function() {
+        var rejected = consumed(this)
+        return rejected ? rejected : Promise.resolve(this._bodyText)
+      }
+    }
+
+    if (support.formData) {
+      this.formData = function() {
+        return this.text().then(decode)
+      }
+    }
+
+    this.json = function() {
+      return this.text().then(JSON.parse)
+    }
+
+    return this
+  }
+
+  // HTTP methods whose capitalization should be normalized
+  var methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
+
+  function normalizeMethod(method) {
+    var upcased = method.toUpperCase()
+    return (methods.indexOf(upcased) > -1) ? upcased : method
+  }
+
+  function Request(input, options) {
+    options = options || {}
+    var body = options.body
+    if (Request.prototype.isPrototypeOf(input)) {
+      if (input.bodyUsed) {
+        throw new TypeError('Already read')
+      }
+      this.url = input.url
+      this.credentials = input.credentials
+      if (!options.headers) {
+        this.headers = new Headers(input.headers)
+      }
+      this.method = input.method
+      this.mode = input.mode
+      if (!body) {
+        body = input._bodyInit
+        input.bodyUsed = true
+      }
+    } else {
+      this.url = input
+    }
+
+    this.credentials = options.credentials || this.credentials || 'omit'
+    if (options.headers || !this.headers) {
+      this.headers = new Headers(options.headers)
+    }
+    this.method = normalizeMethod(options.method || this.method || 'GET')
+    this.mode = options.mode || this.mode || null
+    this.referrer = null
+
+    if ((this.method === 'GET' || this.method === 'HEAD') && body) {
+      throw new TypeError('Body not allowed for GET or HEAD requests')
+    }
+    this._initBody(body)
+  }
+
+  Request.prototype.clone = function() {
+    return new Request(this)
+  }
+
+  function decode(body) {
+    var form = new FormData()
+    body.trim().split('&').forEach(function(bytes) {
+      if (bytes) {
+        var split = bytes.split('=')
+        var name = split.shift().replace(/\+/g, ' ')
+        var value = split.join('=').replace(/\+/g, ' ')
+        form.append(decodeURIComponent(name), decodeURIComponent(value))
+      }
+    })
+    return form
+  }
+
+  function headers(xhr) {
+    var head = new Headers()
+    var pairs = xhr.getAllResponseHeaders().trim().split('\n')
+    pairs.forEach(function(header) {
+      var split = header.trim().split(':')
+      var key = split.shift().trim()
+      var value = split.join(':').trim()
+      head.append(key, value)
+    })
+    return head
+  }
+
+  Body.call(Request.prototype)
+
+  function Response(bodyInit, options) {
+    if (!options) {
+      options = {}
+    }
+
+    this._initBody(bodyInit)
+    this.type = 'default'
+    this.status = options.status
+    this.ok = this.status >= 200 && this.status < 300
+    this.statusText = options.statusText
+    this.headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers)
+    this.url = options.url || ''
+  }
+
+  Body.call(Response.prototype)
+
+  Response.prototype.clone = function() {
+    return new Response(this._bodyInit, {
+      status: this.status,
+      statusText: this.statusText,
+      headers: new Headers(this.headers),
+      url: this.url
+    })
+  }
+
+  Response.error = function() {
+    var response = new Response(null, {status: 0, statusText: ''})
+    response.type = 'error'
+    return response
+  }
+
+  var redirectStatuses = [301, 302, 303, 307, 308]
+
+  Response.redirect = function(url, status) {
+    if (redirectStatuses.indexOf(status) === -1) {
+      throw new RangeError('Invalid status code')
+    }
+
+    return new Response(null, {status: status, headers: {location: url}})
+  }
+
+  self.Headers = Headers;
+  self.Request = Request;
+  self.Response = Response;
+
+  self.fetch = function(input, init) {
+    return new Promise(function(resolve, reject) {
+      var request
+      if (Request.prototype.isPrototypeOf(input) && !init) {
+        request = input
+      } else {
+        request = new Request(input, init)
+      }
+
+      var xhr = new XMLHttpRequest()
+
+      function responseURL() {
+        if ('responseURL' in xhr) {
+          return xhr.responseURL
+        }
+
+        // Avoid security warnings on getResponseHeader when not allowed by CORS
+        if (/^X-Request-URL:/m.test(xhr.getAllResponseHeaders())) {
+          return xhr.getResponseHeader('X-Request-URL')
+        }
+
+        return;
+      }
+
+      xhr.onload = function() {
+        var status = (xhr.status === 1223) ? 204 : xhr.status
+        if (status < 100 || status > 599) {
+          reject(new TypeError('Network request failed'))
+          return
+        }
+        var options = {
+          status: status,
+          statusText: xhr.statusText,
+          headers: headers(xhr),
+          url: responseURL()
+        }
+        var body = 'response' in xhr ? xhr.response : xhr.responseText;
+        resolve(new Response(body, options))
+      }
+
+      xhr.onerror = function() {
+        reject(new TypeError('Network request failed'))
+      }
+
+      xhr.open(request.method, request.url, true)
+
+      if (request.credentials === 'include') {
+        xhr.withCredentials = true
+      }
+
+      if ('responseType' in xhr && support.blob) {
+        xhr.responseType = 'blob'
+      }
+
+      request.headers.forEach(function(value, name) {
+        xhr.setRequestHeader(name, value)
+      })
+
+      xhr.send(typeof request._bodyInit === 'undefined' ? null : request._bodyInit)
+    })
+  }
+  self.fetch.polyfill = true
+})();
+
+},{}],23:[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.4
  * http://jquery.com/
@@ -18017,9 +18274,9 @@ return jQuery;
 
 }));
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 /*!
- * Knockout JavaScript library v3.3.0
+ * Knockout JavaScript library v3.4.0
  * (c) Steven Sanderson - http://knockoutjs.com/
  * License: MIT (http://www.opensource.org/licenses/mit-license.php)
  */
@@ -18039,7 +18296,7 @@ var DEBUG=true;
     if (typeof define === 'function' && define['amd']) {
         // [1] AMD anonymous module
         define(['exports', 'require'], factory);
-    } else if (typeof require === 'function' && typeof exports === 'object' && typeof module === 'object') {
+    } else if (typeof exports === 'object' && typeof module === 'object') {
         // [2] CommonJS/Node.js
         factory(module['exports'] || exports);  // module.exports is for Node.js
     } else {
@@ -18065,9 +18322,16 @@ ko.exportSymbol = function(koPath, object) {
 ko.exportProperty = function(owner, publicName, object) {
     owner[publicName] = object;
 };
-ko.version = "3.3.0";
+ko.version = "3.4.0";
 
 ko.exportSymbol('version', ko.version);
+// For any options that may affect various areas of Knockout and aren't directly associated with data binding.
+ko.options = {
+    'deferUpdates': false,
+    'useOnlyNativeEvents': false
+};
+
+//ko.exportSymbol('options', ko.options);   // 'options' isn't minified
 ko.utils = (function () {
     function objectForEach(obj, action) {
         for (var prop in obj) {
@@ -18094,6 +18358,7 @@ ko.utils = (function () {
     }
 
     var canSetPrototype = ({ __proto__: [] } instanceof Array);
+    var canUseSymbols = !DEBUG && typeof Symbol === 'function';
 
     // Represent the known event types in a compact way, then at runtime transform it into a hash with event name as key (for fast lookup)
     var knownEvents = {}, knownEventTypesByEventName = {};
@@ -18324,8 +18589,11 @@ ko.utils = (function () {
             // Rules:
             //   [A] Any leading nodes that have been removed should be ignored
             //       These most likely correspond to memoization nodes that were already removed during binding
-            //       See https://github.com/SteveSanderson/knockout/pull/440
-            //   [B] We want to output a continuous series of nodes. So, ignore any nodes that have already been removed,
+            //       See https://github.com/knockout/knockout/pull/440
+            //   [B] Any trailing nodes that have been remove should be ignored
+            //       This prevents the code here from adding unrelated nodes to the array while processing rule [C]
+            //       See https://github.com/knockout/knockout/pull/1903
+            //   [C] We want to output a continuous series of nodes. So, ignore any nodes that have already been removed,
             //       and include any nodes that have been inserted among the previous collection
 
             if (continuousNodeArray.length) {
@@ -18337,6 +18605,10 @@ ko.utils = (function () {
                     continuousNodeArray.splice(0, 1);
 
                 // Rule [B]
+                while (continuousNodeArray.length > 1 && continuousNodeArray[continuousNodeArray.length - 1].parentNode !== parentNode)
+                    continuousNodeArray.length--;
+
+                // Rule [C]
                 if (continuousNodeArray.length > 1) {
                     var current = continuousNodeArray[0], last = continuousNodeArray[continuousNodeArray.length - 1];
                     // Replace with the actual new continuous node set
@@ -18344,8 +18616,6 @@ ko.utils = (function () {
                     while (current !== last) {
                         continuousNodeArray.push(current);
                         current = current.nextSibling;
-                        if (!current) // Won't happen, except if the developer has manually removed some DOM elements (then we're in an undefined scenario)
-                            return;
                     }
                     continuousNodeArray.push(last);
                 }
@@ -18405,14 +18675,38 @@ ko.utils = (function () {
             return element && element.tagName && element.tagName.toLowerCase();
         },
 
+        catchFunctionErrors: function (delegate) {
+            return ko['onError'] ? function () {
+                try {
+                    return delegate.apply(this, arguments);
+                } catch (e) {
+                    ko['onError'] && ko['onError'](e);
+                    throw e;
+                }
+            } : delegate;
+        },
+
+        setTimeout: function (handler, timeout) {
+            return setTimeout(ko.utils.catchFunctionErrors(handler), timeout);
+        },
+
+        deferError: function (error) {
+            setTimeout(function () {
+                ko['onError'] && ko['onError'](error);
+                throw error;
+            }, 0);
+        },
+
         registerEventHandler: function (element, eventType, handler) {
+            var wrappedHandler = ko.utils.catchFunctionErrors(handler);
+
             var mustUseAttachEvent = ieVersion && eventsThatMustBeRegisteredUsingAttachEvent[eventType];
-            if (!mustUseAttachEvent && jQueryInstance) {
-                jQueryInstance(element)['bind'](eventType, handler);
+            if (!ko.options['useOnlyNativeEvents'] && !mustUseAttachEvent && jQueryInstance) {
+                jQueryInstance(element)['bind'](eventType, wrappedHandler);
             } else if (!mustUseAttachEvent && typeof element.addEventListener == "function")
-                element.addEventListener(eventType, handler, false);
+                element.addEventListener(eventType, wrappedHandler, false);
             else if (typeof element.attachEvent != "undefined") {
-                var attachEventHandler = function (event) { handler.call(element, event); },
+                var attachEventHandler = function (event) { wrappedHandler.call(element, event); },
                     attachEventName = "on" + eventType;
                 element.attachEvent(attachEventName, attachEventHandler);
 
@@ -18435,7 +18729,7 @@ ko.utils = (function () {
             // In both cases, we'll use the click method instead.
             var useClickWorkaround = isClickOnCheckableElement(element, eventType);
 
-            if (jQueryInstance && !useClickWorkaround) {
+            if (!ko.options['useOnlyNativeEvents'] && jQueryInstance && !useClickWorkaround) {
                 jQueryInstance(element)['trigger'](eventType);
             } else if (typeof document.createEvent == "function") {
                 if (typeof element.dispatchEvent == "function") {
@@ -18533,6 +18827,10 @@ ko.utils = (function () {
                 result.push(arrayLikeObject[i]);
             };
             return result;
+        },
+
+        createSymbolOrString: function(identifier) {
+            return canUseSymbols ? Symbol(identifier) : identifier;
         },
 
         isIe6 : isIe6,
@@ -18813,7 +19111,29 @@ ko.exportSymbol('utils.domNodeDisposal', ko.utils.domNodeDisposal);
 ko.exportSymbol('utils.domNodeDisposal.addDisposeCallback', ko.utils.domNodeDisposal.addDisposeCallback);
 ko.exportSymbol('utils.domNodeDisposal.removeDisposeCallback', ko.utils.domNodeDisposal.removeDisposeCallback);
 (function () {
-    var leadingCommentRegex = /^(\s*)<!--(.*?)-->/;
+    var none = [0, "", ""],
+        table = [1, "<table>", "</table>"],
+        tbody = [2, "<table><tbody>", "</tbody></table>"],
+        tr = [3, "<table><tbody><tr>", "</tr></tbody></table>"],
+        select = [1, "<select multiple='multiple'>", "</select>"],
+        lookup = {
+            'thead': table,
+            'tbody': table,
+            'tfoot': table,
+            'tr': tbody,
+            'td': tr,
+            'th': tr,
+            'option': select,
+            'optgroup': select
+        },
+
+        // This is needed for old IE if you're *not* using either jQuery or innerShiv. Doesn't affect other cases.
+        mayRequireCreateElementHack = ko.utils.ieVersion <= 8;
+
+    function getWrap(tags) {
+        var m = tags.match(/^<([a-z]+)[ >]/);
+        return (m && lookup[m[1]]) || none;
+    }
 
     function simpleHtmlParse(html, documentContext) {
         documentContext || (documentContext = document);
@@ -18828,25 +19148,34 @@ ko.exportSymbol('utils.domNodeDisposal.removeDisposeCallback', ko.utils.domNodeD
         // (possibly a text node) in front of the comment. So, KO does not attempt to workaround this IE issue automatically at present.
 
         // Trim whitespace, otherwise indexOf won't work as expected
-        var tags = ko.utils.stringTrim(html).toLowerCase(), div = documentContext.createElement("div");
-
-        // Finds the first match from the left column, and returns the corresponding "wrap" data from the right column
-        var wrap = tags.match(/^<(thead|tbody|tfoot)/)              && [1, "<table>", "</table>"] ||
-                   !tags.indexOf("<tr")                             && [2, "<table><tbody>", "</tbody></table>"] ||
-                   (!tags.indexOf("<td") || !tags.indexOf("<th"))   && [3, "<table><tbody><tr>", "</tr></tbody></table>"] ||
-                   /* anything else */                                 [0, "", ""];
+        var tags = ko.utils.stringTrim(html).toLowerCase(), div = documentContext.createElement("div"),
+            wrap = getWrap(tags),
+            depth = wrap[0];
 
         // Go to html and back, then peel off extra wrappers
         // Note that we always prefix with some dummy text, because otherwise, IE<9 will strip out leading comment nodes in descendants. Total madness.
         var markup = "ignored<div>" + wrap[1] + html + wrap[2] + "</div>";
         if (typeof windowContext['innerShiv'] == "function") {
+            // Note that innerShiv is deprecated in favour of html5shiv. We should consider adding
+            // support for html5shiv (except if no explicit support is needed, e.g., if html5shiv
+            // somehow shims the native APIs so it just works anyway)
             div.appendChild(windowContext['innerShiv'](markup));
         } else {
+            if (mayRequireCreateElementHack) {
+                // The document.createElement('my-element') trick to enable custom elements in IE6-8
+                // only works if we assign innerHTML on an element associated with that document.
+                documentContext.appendChild(div);
+            }
+
             div.innerHTML = markup;
+
+            if (mayRequireCreateElementHack) {
+                div.parentNode.removeChild(div);
+            }
         }
 
         // Move to the right depth
-        while (wrap[0]--)
+        while (depth--)
             div = div.lastChild;
 
         return ko.utils.makeArray(div.lastChild.childNodes);
@@ -18878,8 +19207,9 @@ ko.exportSymbol('utils.domNodeDisposal.removeDisposeCallback', ko.utils.domNodeD
     }
 
     ko.utils.parseHtmlFragment = function(html, documentContext) {
-        return jQueryInstance ? jQueryHtmlParse(html, documentContext)   // As below, benefit from jQuery's optimisations where possible
-                              : simpleHtmlParse(html, documentContext);  // ... otherwise, this simple logic will do in most common cases.
+        return jQueryInstance ?
+            jQueryHtmlParse(html, documentContext) :   // As below, benefit from jQuery's optimisations where possible
+            simpleHtmlParse(html, documentContext);  // ... otherwise, this simple logic will do in most common cases.
     };
 
     ko.utils.setHtml = function(node, html) {
@@ -18979,6 +19309,114 @@ ko.exportSymbol('memoization.memoize', ko.memoization.memoize);
 ko.exportSymbol('memoization.unmemoize', ko.memoization.unmemoize);
 ko.exportSymbol('memoization.parseMemoText', ko.memoization.parseMemoText);
 ko.exportSymbol('memoization.unmemoizeDomNodeAndDescendants', ko.memoization.unmemoizeDomNodeAndDescendants);
+ko.tasks = (function () {
+    var scheduler,
+        taskQueue = [],
+        taskQueueLength = 0,
+        nextHandle = 1,
+        nextIndexToProcess = 0;
+
+    if (window['MutationObserver']) {
+        // Chrome 27+, Firefox 14+, IE 11+, Opera 15+, Safari 6.1+
+        // From https://github.com/petkaantonov/bluebird * Copyright (c) 2014 Petka Antonov * License: MIT
+        scheduler = (function (callback) {
+            var div = document.createElement("div");
+            new MutationObserver(callback).observe(div, {attributes: true});
+            return function () { div.classList.toggle("foo"); };
+        })(scheduledProcess);
+    } else if (document && "onreadystatechange" in document.createElement("script")) {
+        // IE 6-10
+        // From https://github.com/YuzuJS/setImmediate * Copyright (c) 2012 Barnesandnoble.com, llc, Donavon West, and Domenic Denicola * License: MIT
+        scheduler = function (callback) {
+            var script = document.createElement("script");
+            script.onreadystatechange = function () {
+                script.onreadystatechange = null;
+                document.documentElement.removeChild(script);
+                script = null;
+                callback();
+            };
+            document.documentElement.appendChild(script);
+        };
+    } else {
+        scheduler = function (callback) {
+            setTimeout(callback, 0);
+        };
+    }
+
+    function processTasks() {
+        if (taskQueueLength) {
+            // Each mark represents the end of a logical group of tasks and the number of these groups is
+            // limited to prevent unchecked recursion.
+            var mark = taskQueueLength, countMarks = 0;
+
+            // nextIndexToProcess keeps track of where we are in the queue; processTasks can be called recursively without issue
+            for (var task; nextIndexToProcess < taskQueueLength; ) {
+                if (task = taskQueue[nextIndexToProcess++]) {
+                    if (nextIndexToProcess > mark) {
+                        if (++countMarks >= 5000) {
+                            nextIndexToProcess = taskQueueLength;   // skip all tasks remaining in the queue since any of them could be causing the recursion
+                            ko.utils.deferError(Error("'Too much recursion' after processing " + countMarks + " task groups."));
+                            break;
+                        }
+                        mark = taskQueueLength;
+                    }
+                    try {
+                        task();
+                    } catch (ex) {
+                        ko.utils.deferError(ex);
+                    }
+                }
+            }
+        }
+    }
+
+    function scheduledProcess() {
+        processTasks();
+
+        // Reset the queue
+        nextIndexToProcess = taskQueueLength = taskQueue.length = 0;
+    }
+
+    function scheduleTaskProcessing() {
+        ko.tasks['scheduler'](scheduledProcess);
+    }
+
+    var tasks = {
+        'scheduler': scheduler,     // Allow overriding the scheduler
+
+        schedule: function (func) {
+            if (!taskQueueLength) {
+                scheduleTaskProcessing();
+            }
+
+            taskQueue[taskQueueLength++] = func;
+            return nextHandle++;
+        },
+
+        cancel: function (handle) {
+            var index = handle - (nextHandle - taskQueueLength);
+            if (index >= nextIndexToProcess && index < taskQueueLength) {
+                taskQueue[index] = null;
+            }
+        },
+
+        // For testing only: reset the queue and return the previous queue length
+        'resetForTesting': function () {
+            var length = taskQueueLength - nextIndexToProcess;
+            nextIndexToProcess = taskQueueLength = taskQueue.length = 0;
+            return length;
+        },
+
+        runEarly: processTasks
+    };
+
+    return tasks;
+})();
+
+ko.exportSymbol('tasks', ko.tasks);
+ko.exportSymbol('tasks.schedule', ko.tasks.schedule);
+//ko.exportSymbol('tasks.cancel', ko.tasks.cancel);  "cancel" isn't minified
+ko.exportSymbol('tasks.runEarly', ko.tasks.runEarly);
 ko.extenders = {
     'throttle': function(target, timeout) {
         // Throttling means two things:
@@ -18994,7 +19432,7 @@ ko.extenders = {
             'read': target,
             'write': function(value) {
                 clearTimeout(writeTimeoutInstance);
-                writeTimeoutInstance = setTimeout(function() {
+                writeTimeoutInstance = ko.utils.setTimeout(function() {
                     target(value);
                 }, timeout);
             }
@@ -19011,10 +19449,31 @@ ko.extenders = {
             method = options['method'];
         }
 
+        // rateLimit supersedes deferred updates
+        target._deferUpdates = false;
+
         limitFunction = method == 'notifyWhenChangesStop' ?  debounce : throttle;
         target.limit(function(callback) {
             return limitFunction(callback, timeout);
         });
+    },
+
+    'deferred': function(target, options) {
+        if (options !== true) {
+            throw new Error('The \'deferred\' extender only accepts the value \'true\', because it is not supported to turn deferral off once enabled.')
+        }
+
+        if (!target._deferUpdates) {
+            target._deferUpdates = true;
+            target.limit(function (callback) {
+                var handle;
+                return function () {
+                    ko.tasks.cancel(handle);
+                    handle = ko.tasks.schedule(callback);
+                    target['notifySubscribers'](undefined, 'dirty');
+                };
+            });
+        }
     },
 
     'notify': function(target, notifyWhen) {
@@ -19034,7 +19493,7 @@ function throttle(callback, timeout) {
     var timeoutInstance;
     return function () {
         if (!timeoutInstance) {
-            timeoutInstance = setTimeout(function() {
+            timeoutInstance = ko.utils.setTimeout(function () {
                 timeoutInstance = undefined;
                 callback();
             }, timeout);
@@ -19046,7 +19505,7 @@ function debounce(callback, timeout) {
     var timeoutInstance;
     return function () {
         clearTimeout(timeoutInstance);
-        timeoutInstance = setTimeout(callback, timeout);
+        timeoutInstance = ko.utils.setTimeout(callback, timeout);
     };
 }
 
@@ -19078,14 +19537,29 @@ ko.subscription.prototype.dispose = function () {
 };
 
 ko.subscribable = function () {
-    ko.utils.setPrototypeOfOrExtend(this, ko.subscribable['fn']);
-    this._subscriptions = {};
-    this._versionNumber = 1;
+    ko.utils.setPrototypeOfOrExtend(this, ko_subscribable_fn);
+    ko_subscribable_fn.init(this);
 }
 
 var defaultEvent = "change";
 
+// Moved out of "limit" to avoid the extra closure
+function limitNotifySubscribers(value, event) {
+    if (!event || event === defaultEvent) {
+        this._limitChange(value);
+    } else if (event === 'beforeChange') {
+        this._limitBeforeChange(value);
+    } else {
+        this._origNotifySubscribers(value, event);
+    }
+}
+
 var ko_subscribable_fn = {
+    init: function(instance) {
+        instance._subscriptions = {};
+        instance._versionNumber = 1;
+    },
+
     subscribe: function (callback, callbackTarget, event) {
         var self = this;
 
@@ -19142,40 +19616,34 @@ var ko_subscribable_fn = {
 
     limit: function(limitFunction) {
         var self = this, selfIsObservable = ko.isObservable(self),
-            isPending, previousValue, pendingValue, beforeChange = 'beforeChange';
+            ignoreBeforeChange, previousValue, pendingValue, beforeChange = 'beforeChange';
 
         if (!self._origNotifySubscribers) {
             self._origNotifySubscribers = self["notifySubscribers"];
-            self["notifySubscribers"] = function(value, event) {
-                if (!event || event === defaultEvent) {
-                    self._rateLimitedChange(value);
-                } else if (event === beforeChange) {
-                    self._rateLimitedBeforeChange(value);
-                } else {
-                    self._origNotifySubscribers(value, event);
-                }
-            };
+            self["notifySubscribers"] = limitNotifySubscribers;
         }
 
         var finish = limitFunction(function() {
+            self._notificationIsPending = false;
+
             // If an observable provided a reference to itself, access it to get the latest value.
             // This allows computed observables to delay calculating their value until needed.
             if (selfIsObservable && pendingValue === self) {
                 pendingValue = self();
             }
-            isPending = false;
+            ignoreBeforeChange = false;
             if (self.isDifferent(previousValue, pendingValue)) {
                 self._origNotifySubscribers(previousValue = pendingValue);
             }
         });
 
-        self._rateLimitedChange = function(value) {
-            isPending = true;
+        self._limitChange = function(value) {
+            self._notificationIsPending = ignoreBeforeChange = true;
             pendingValue = value;
             finish();
         };
-        self._rateLimitedBeforeChange = function(value) {
-            if (!isPending) {
+        self._limitBeforeChange = function(value) {
+            if (!ignoreBeforeChange) {
                 previousValue = value;
                 self._origNotifySubscribers(value, beforeChange);
             }
@@ -19192,7 +19660,8 @@ var ko_subscribable_fn = {
         } else {
             var total = 0;
             ko.utils.objectForEach(this._subscriptions, function(eventName, subscriptions) {
-                total += subscriptions.length;
+                if (eventName !== 'dirty')
+                    total += subscriptions.length;
             });
             return total;
         }
@@ -19259,7 +19728,7 @@ ko.computedContext = ko.dependencyDetection = (function () {
             if (currentFrame) {
                 if (!ko.isSubscribable(subscribable))
                     throw new Error("Only subscribable things can act as dependencies");
-                currentFrame.callback(subscribable, subscribable._id || (subscribable._id = getId()));
+                currentFrame.callback.call(currentFrame.callbackTarget, subscribable, subscribable._id || (subscribable._id = getId()));
             }
         },
 
@@ -19287,21 +19756,19 @@ ko.computedContext = ko.dependencyDetection = (function () {
 ko.exportSymbol('computedContext', ko.computedContext);
 ko.exportSymbol('computedContext.getDependenciesCount', ko.computedContext.getDependenciesCount);
 ko.exportSymbol('computedContext.isInitial', ko.computedContext.isInitial);
-ko.exportSymbol('computedContext.isSleeping', ko.computedContext.isSleeping);
 
 ko.exportSymbol('ignoreDependencies', ko.ignoreDependencies = ko.dependencyDetection.ignore);
-ko.observable = function (initialValue) {
-    var _latestValue = initialValue;
+var observableLatestValue = ko.utils.createSymbolOrString('_latestValue');
 
+ko.observable = function (initialValue) {
     function observable() {
         if (arguments.length > 0) {
             // Write
 
             // Ignore writes if the value hasn't changed
-            if (observable.isDifferent(_latestValue, arguments[0])) {
+            if (observable.isDifferent(observable[observableLatestValue], arguments[0])) {
                 observable.valueWillMutate();
-                _latestValue = arguments[0];
-                if (DEBUG) observable._latestValue = _latestValue;
+                observable[observableLatestValue] = arguments[0];
                 observable.valueHasMutated();
             }
             return this; // Permits chained assignments
@@ -19309,36 +19776,45 @@ ko.observable = function (initialValue) {
         else {
             // Read
             ko.dependencyDetection.registerDependency(observable); // The caller only needs to be notified of changes if they did a "read" operation
-            return _latestValue;
+            return observable[observableLatestValue];
         }
     }
-    ko.subscribable.call(observable);
-    ko.utils.setPrototypeOfOrExtend(observable, ko.observable['fn']);
 
-    if (DEBUG) observable._latestValue = _latestValue;
-    observable.peek = function() { return _latestValue };
-    observable.valueHasMutated = function () { observable["notifySubscribers"](_latestValue); }
-    observable.valueWillMutate = function () { observable["notifySubscribers"](_latestValue, "beforeChange"); }
+    observable[observableLatestValue] = initialValue;
 
-    ko.exportProperty(observable, 'peek', observable.peek);
-    ko.exportProperty(observable, "valueHasMutated", observable.valueHasMutated);
-    ko.exportProperty(observable, "valueWillMutate", observable.valueWillMutate);
+    // Inherit from 'subscribable'
+    if (!ko.utils.canSetPrototype) {
+        // 'subscribable' won't be on the prototype chain unless we put it there directly
+        ko.utils.extend(observable, ko.subscribable['fn']);
+    }
+    ko.subscribable['fn'].init(observable);
+
+    // Inherit from 'observable'
+    ko.utils.setPrototypeOfOrExtend(observable, observableFn);
+
+    if (ko.options['deferUpdates']) {
+        ko.extenders['deferred'](observable, true);
+    }
 
     return observable;
 }
 
-ko.observable['fn'] = {
-    "equalityComparer": valuesArePrimitiveAndEqual
+// Define prototype for observables
+var observableFn = {
+    'equalityComparer': valuesArePrimitiveAndEqual,
+    peek: function() { return this[observableLatestValue]; },
+    valueHasMutated: function () { this['notifySubscribers'](this[observableLatestValue]); },
+    valueWillMutate: function () { this['notifySubscribers'](this[observableLatestValue], 'beforeChange'); }
 };
-
-var protoProperty = ko.observable.protoProperty = "__ko_proto__";
-ko.observable['fn'][protoProperty] = ko.observable;
 
 // Note that for browsers that don't support proto assignment, the
 // inheritance chain is created manually in the ko.observable constructor
 if (ko.utils.canSetPrototype) {
-    ko.utils.setPrototypeOf(ko.observable['fn'], ko.subscribable['fn']);
+    ko.utils.setPrototypeOf(observableFn, ko.subscribable['fn']);
 }
+
+var protoProperty = ko.observable.protoProperty = '__ko_proto__';
+observableFn[protoProperty] = ko.observable;
 
 ko.hasPrototype = function(instance, prototype) {
     if ((instance === null) || (instance === undefined) || (instance[protoProperty] === undefined)) return false;
@@ -19351,20 +19827,23 @@ ko.isObservable = function (instance) {
 }
 ko.isWriteableObservable = function (instance) {
     // Observable
-    if ((typeof instance == "function") && instance[protoProperty] === ko.observable)
+    if ((typeof instance == 'function') && instance[protoProperty] === ko.observable)
         return true;
     // Writeable dependent observable
-    if ((typeof instance == "function") && (instance[protoProperty] === ko.dependentObservable) && (instance.hasWriteFunction))
+    if ((typeof instance == 'function') && (instance[protoProperty] === ko.dependentObservable) && (instance.hasWriteFunction))
         return true;
     // Anything else
     return false;
 }
 
-
 ko.exportSymbol('observable', ko.observable);
 ko.exportSymbol('isObservable', ko.isObservable);
 ko.exportSymbol('isWriteableObservable', ko.isWriteableObservable);
 ko.exportSymbol('isWritableObservable', ko.isWriteableObservable);
+ko.exportSymbol('observable.fn', observableFn);
+ko.exportProperty(observableFn, 'peek', observableFn.peek);
+ko.exportProperty(observableFn, 'valueHasMutated', observableFn.valueHasMutated);
+ko.exportProperty(observableFn, 'valueWillMutate', observableFn.valueWillMutate);
 ko.observableArray = function (initialValues) {
     initialValues = initialValues || [];
 
@@ -19456,6 +19935,12 @@ ko.observableArray['fn'] = {
     }
 };
 
+// Note that for browsers that don't support proto assignment, the
+// inheritance chain is created manually in the ko.observableArray constructor
+if (ko.utils.canSetPrototype) {
+    ko.utils.setPrototypeOf(ko.observableArray['fn'], ko.observable['fn']);
+}
+
 // Populate ko.observableArray.fn with read/write functions from native arrays
 // Important: Do not add any additional functions here that may reasonably be used to *read* data from the array
 // because we'll eval them without causing subscriptions, so ko.computed output could end up getting stale
@@ -19468,7 +19953,8 @@ ko.utils.arrayForEach(["pop", "push", "reverse", "shift", "sort", "splice", "uns
         this.cacheDiffForKnownOperation(underlyingArray, methodName, arguments);
         var methodCallResult = underlyingArray[methodName].apply(underlyingArray, arguments);
         this.valueHasMutated();
-        return methodCallResult;
+        // The native sort and reverse methods return a reference to the array, but it makes more sense to return the observable array instead.
+        return methodCallResult === underlyingArray ? this : methodCallResult;
     };
 });
 
@@ -19480,15 +19966,16 @@ ko.utils.arrayForEach(["slice"], function (methodName) {
     };
 });
 
-// Note that for browsers that don't support proto assignment, the
-// inheritance chain is created manually in the ko.observableArray constructor
-if (ko.utils.canSetPrototype) {
-    ko.utils.setPrototypeOf(ko.observableArray['fn'], ko.observable['fn']);
-}
-
 ko.exportSymbol('observableArray', ko.observableArray);
 var arrayChangeEventName = 'arrayChange';
-ko.extenders['trackArrayChanges'] = function(target) {
+ko.extenders['trackArrayChanges'] = function(target, options) {
+    // Use the provided options--each call to trackArrayChanges overwrites the previously set options
+    target.compareArrayOptions = {};
+    if (options && typeof options == "object") {
+        ko.utils.extend(target.compareArrayOptions, options);
+    }
+    target.compareArrayOptions['sparse'] = true;
+
     // Only modify the target observable once
     if (target.cacheDiffForKnownOperation) {
         return;
@@ -19565,7 +20052,7 @@ ko.extenders['trackArrayChanges'] = function(target) {
         // plugin, which without this check would not be compatible with arrayChange notifications. Normally,
         // notifications are issued immediately so we wouldn't be queueing up more than one.
         if (!cachedDiff || pendingNotifications > 1) {
-            cachedDiff = ko.utils.compareArrays(previousContents, currentContents, { 'sparse': true });
+            cachedDiff = ko.utils.compareArrays(previousContents, currentContents, target.compareArrayOptions);
         }
 
         return cachedDiff;
@@ -19625,41 +20112,162 @@ ko.extenders['trackArrayChanges'] = function(target) {
         cachedDiff = diff;
     };
 };
-ko.computed = ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunctionTarget, options) {
-    var _latestValue,
-        _needsEvaluation = true,
-        _isBeingEvaluated = false,
-        _suppressDisposalUntilDisposeWhenReturnsFalse = false,
-        _isDisposed = false,
-        readFunction = evaluatorFunctionOrOptions,
-        pure = false,
-        isSleeping = false;
+var computedState = ko.utils.createSymbolOrString('_state');
 
-    if (readFunction && typeof readFunction == "object") {
+ko.computed = ko.dependentObservable = function (evaluatorFunctionOrOptions, evaluatorFunctionTarget, options) {
+    if (typeof evaluatorFunctionOrOptions === "object") {
         // Single-parameter syntax - everything is on this "options" param
-        options = readFunction;
-        readFunction = options["read"];
+        options = evaluatorFunctionOrOptions;
     } else {
         // Multi-parameter syntax - construct the options according to the params passed
         options = options || {};
-        if (!readFunction)
-            readFunction = options["read"];
+        if (evaluatorFunctionOrOptions) {
+            options["read"] = evaluatorFunctionOrOptions;
+        }
     }
-    if (typeof readFunction != "function")
-        throw new Error("Pass a function that returns the value of the ko.computed");
+    if (typeof options["read"] != "function")
+        throw Error("Pass a function that returns the value of the ko.computed");
 
-    function addDependencyTracking(id, target, trackingObj) {
-        if (pure && target === dependentObservable) {
+    var writeFunction = options["write"];
+    var state = {
+        latestValue: undefined,
+        isStale: true,
+        isBeingEvaluated: false,
+        suppressDisposalUntilDisposeWhenReturnsFalse: false,
+        isDisposed: false,
+        pure: false,
+        isSleeping: false,
+        readFunction: options["read"],
+        evaluatorFunctionTarget: evaluatorFunctionTarget || options["owner"],
+        disposeWhenNodeIsRemoved: options["disposeWhenNodeIsRemoved"] || options.disposeWhenNodeIsRemoved || null,
+        disposeWhen: options["disposeWhen"] || options.disposeWhen,
+        domNodeDisposalCallback: null,
+        dependencyTracking: {},
+        dependenciesCount: 0,
+        evaluationTimeoutInstance: null
+    };
+
+    function computedObservable() {
+        if (arguments.length > 0) {
+            if (typeof writeFunction === "function") {
+                // Writing a value
+                writeFunction.apply(state.evaluatorFunctionTarget, arguments);
+            } else {
+                throw new Error("Cannot write a value to a ko.computed unless you specify a 'write' option. If you wish to read the current value, don't pass any parameters.");
+            }
+            return this; // Permits chained assignments
+        } else {
+            // Reading the value
+            ko.dependencyDetection.registerDependency(computedObservable);
+            if (state.isStale || (state.isSleeping && computedObservable.haveDependenciesChanged())) {
+                computedObservable.evaluateImmediate();
+            }
+            return state.latestValue;
+        }
+    }
+
+    computedObservable[computedState] = state;
+    computedObservable.hasWriteFunction = typeof writeFunction === "function";
+
+    // Inherit from 'subscribable'
+    if (!ko.utils.canSetPrototype) {
+        // 'subscribable' won't be on the prototype chain unless we put it there directly
+        ko.utils.extend(computedObservable, ko.subscribable['fn']);
+    }
+    ko.subscribable['fn'].init(computedObservable);
+
+    // Inherit from 'computed'
+    ko.utils.setPrototypeOfOrExtend(computedObservable, computedFn);
+
+    if (options['pure']) {
+        state.pure = true;
+        state.isSleeping = true;     // Starts off sleeping; will awake on the first subscription
+        ko.utils.extend(computedObservable, pureComputedOverrides);
+    } else if (options['deferEvaluation']) {
+        ko.utils.extend(computedObservable, deferEvaluationOverrides);
+    }
+
+    if (ko.options['deferUpdates']) {
+        ko.extenders['deferred'](computedObservable, true);
+    }
+
+    if (DEBUG) {
+        // #1731 - Aid debugging by exposing the computed's options
+        computedObservable["_options"] = options;
+    }
+
+    if (state.disposeWhenNodeIsRemoved) {
+        // Since this computed is associated with a DOM node, and we don't want to dispose the computed
+        // until the DOM node is *removed* from the document (as opposed to never having been in the document),
+        // we'll prevent disposal until "disposeWhen" first returns false.
+        state.suppressDisposalUntilDisposeWhenReturnsFalse = true;
+
+        // disposeWhenNodeIsRemoved: true can be used to opt into the "only dispose after first false result"
+        // behaviour even if there's no specific node to watch. In that case, clear the option so we don't try
+        // to watch for a non-node's disposal. This technique is intended for KO's internal use only and shouldn't
+        // be documented or used by application code, as it's likely to change in a future version of KO.
+        if (!state.disposeWhenNodeIsRemoved.nodeType) {
+            state.disposeWhenNodeIsRemoved = null;
+        }
+    }
+
+    // Evaluate, unless sleeping or deferEvaluation is true
+    if (!state.isSleeping && !options['deferEvaluation']) {
+        computedObservable.evaluateImmediate();
+    }
+
+    // Attach a DOM node disposal callback so that the computed will be proactively disposed as soon as the node is
+    // removed using ko.removeNode. But skip if isActive is false (there will never be any dependencies to dispose).
+    if (state.disposeWhenNodeIsRemoved && computedObservable.isActive()) {
+        ko.utils.domNodeDisposal.addDisposeCallback(state.disposeWhenNodeIsRemoved, state.domNodeDisposalCallback = function () {
+            computedObservable.dispose();
+        });
+    }
+
+    return computedObservable;
+};
+
+// Utility function that disposes a given dependencyTracking entry
+function computedDisposeDependencyCallback(id, entryToDispose) {
+    if (entryToDispose !== null && entryToDispose.dispose) {
+        entryToDispose.dispose();
+    }
+}
+
+// This function gets called each time a dependency is detected while evaluating a computed.
+// It's factored out as a shared function to avoid creating unnecessary function instances during evaluation.
+function computedBeginDependencyDetectionCallback(subscribable, id) {
+    var computedObservable = this.computedObservable,
+        state = computedObservable[computedState];
+    if (!state.isDisposed) {
+        if (this.disposalCount && this.disposalCandidates[id]) {
+            // Don't want to dispose this subscription, as it's still being used
+            computedObservable.addDependencyTracking(id, subscribable, this.disposalCandidates[id]);
+            this.disposalCandidates[id] = null; // No need to actually delete the property - disposalCandidates is a transient object anyway
+            --this.disposalCount;
+        } else if (!state.dependencyTracking[id]) {
+            // Brand new subscription - add it
+            computedObservable.addDependencyTracking(id, subscribable, state.isSleeping ? { _target: subscribable } : computedObservable.subscribeToDependency(subscribable));
+        }
+    }
+}
+
+var computedFn = {
+    "equalityComparer": valuesArePrimitiveAndEqual,
+    getDependenciesCount: function () {
+        return this[computedState].dependenciesCount;
+    },
+    addDependencyTracking: function (id, target, trackingObj) {
+        if (this[computedState].pure && target === this) {
             throw Error("A 'pure' computed must not be called recursively");
         }
 
-        dependencyTracking[id] = trackingObj;
-        trackingObj._order = _dependenciesCount++;
+        this[computedState].dependencyTracking[id] = trackingObj;
+        trackingObj._order = this[computedState].dependenciesCount++;
         trackingObj._version = target.getVersion();
-    }
-
-    function haveDependenciesChanged() {
-        var id, dependency;
+    },
+    haveDependenciesChanged: function () {
+        var id, dependency, dependencyTracking = this[computedState].dependencyTracking;
         for (id in dependencyTracking) {
             if (dependencyTracking.hasOwnProperty(id)) {
                 dependency = dependencyTracking[id];
@@ -19668,38 +20276,57 @@ ko.computed = ko.dependentObservable = function (evaluatorFunctionOrOptions, eva
                 }
             }
         }
-    }
-
-    function disposeComputed() {
-        if (!isSleeping && dependencyTracking) {
-            ko.utils.objectForEach(dependencyTracking, function (id, dependency) {
-                if (dependency.dispose)
-                    dependency.dispose();
-            });
+    },
+    markDirty: function () {
+        // Process "dirty" events if we can handle delayed notifications
+        if (this._evalDelayed && !this[computedState].isBeingEvaluated) {
+            this._evalDelayed();
         }
-        dependencyTracking = null;
-        _dependenciesCount = 0;
-        _isDisposed = true;
-        _needsEvaluation = false;
-        isSleeping = false;
-    }
-
-    function evaluatePossiblyAsync() {
-        var throttleEvaluationTimeout = dependentObservable['throttleEvaluation'];
-        if (throttleEvaluationTimeout && throttleEvaluationTimeout >= 0) {
-            clearTimeout(evaluationTimeoutInstance);
-            evaluationTimeoutInstance = setTimeout(function () {
-                evaluateImmediate(true /*notifyChange*/);
-            }, throttleEvaluationTimeout);
-        } else if (dependentObservable._evalRateLimited) {
-            dependentObservable._evalRateLimited();
+    },
+    isActive: function () {
+        return this[computedState].isStale || this[computedState].dependenciesCount > 0;
+    },
+    respondToChange: function () {
+        // Ignore "change" events if we've already scheduled a delayed notification
+        if (!this._notificationIsPending) {
+            this.evaluatePossiblyAsync();
+        }
+    },
+    subscribeToDependency: function (target) {
+        if (target._deferUpdates && !this[computedState].disposeWhenNodeIsRemoved) {
+            var dirtySub = target.subscribe(this.markDirty, this, 'dirty'),
+                changeSub = target.subscribe(this.respondToChange, this);
+            return {
+                _target: target,
+                dispose: function () {
+                    dirtySub.dispose();
+                    changeSub.dispose();
+                }
+            };
         } else {
-            evaluateImmediate(true /*notifyChange*/);
+            return target.subscribe(this.evaluatePossiblyAsync, this);
         }
-    }
+    },
+    evaluatePossiblyAsync: function () {
+        var computedObservable = this,
+            throttleEvaluationTimeout = computedObservable['throttleEvaluation'];
+        if (throttleEvaluationTimeout && throttleEvaluationTimeout >= 0) {
+            clearTimeout(this[computedState].evaluationTimeoutInstance);
+            this[computedState].evaluationTimeoutInstance = ko.utils.setTimeout(function () {
+                computedObservable.evaluateImmediate(true /*notifyChange*/);
+            }, throttleEvaluationTimeout);
+        } else if (computedObservable._evalDelayed) {
+            computedObservable._evalDelayed();
+        } else {
+            computedObservable.evaluateImmediate(true /*notifyChange*/);
+        }
+    },
+    evaluateImmediate: function (notifyChange) {
+        var computedObservable = this,
+            state = computedObservable[computedState],
+            disposeWhen = state.disposeWhen;
 
-    function evaluateImmediate(notifyChange) {
-        if (_isBeingEvaluated) {
+        if (state.isBeingEvaluated) {
             // If the evaluation of a ko.computed causes side effects, it's possible that it will trigger its own re-evaluation.
             // This is not desirable (it's hard for a developer to realise a chain of dependencies might cause this, and they almost
             // certainly didn't intend infinite re-evaluations). So, for predictability, we simply prevent ko.computeds from causing
@@ -19708,297 +20335,239 @@ ko.computed = ko.dependentObservable = function (evaluatorFunctionOrOptions, eva
         }
 
         // Do not evaluate (and possibly capture new dependencies) if disposed
-        if (_isDisposed) {
+        if (state.isDisposed) {
             return;
         }
 
-        if (disposeWhen && disposeWhen()) {
-            // See comment below about _suppressDisposalUntilDisposeWhenReturnsFalse
-            if (!_suppressDisposalUntilDisposeWhenReturnsFalse) {
-                dispose();
+        if (state.disposeWhenNodeIsRemoved && !ko.utils.domNodeIsAttachedToDocument(state.disposeWhenNodeIsRemoved) || disposeWhen && disposeWhen()) {
+            // See comment above about suppressDisposalUntilDisposeWhenReturnsFalse
+            if (!state.suppressDisposalUntilDisposeWhenReturnsFalse) {
+                computedObservable.dispose();
                 return;
             }
         } else {
             // It just did return false, so we can stop suppressing now
-            _suppressDisposalUntilDisposeWhenReturnsFalse = false;
+            state.suppressDisposalUntilDisposeWhenReturnsFalse = false;
         }
 
-        _isBeingEvaluated = true;
+        state.isBeingEvaluated = true;
+        try {
+            this.evaluateImmediate_CallReadWithDependencyDetection(notifyChange);
+        } finally {
+            state.isBeingEvaluated = false;
+        }
+
+        if (!state.dependenciesCount) {
+            computedObservable.dispose();
+        }
+    },
+    evaluateImmediate_CallReadWithDependencyDetection: function (notifyChange) {
+        // This function is really just part of the evaluateImmediate logic. You would never call it from anywhere else.
+        // Factoring it out into a separate function means it can be independent of the try/catch block in evaluateImmediate,
+        // which contributes to saving about 40% off the CPU overhead of computed evaluation (on V8 at least).
+
+        var computedObservable = this,
+            state = computedObservable[computedState];
+
+        // Initially, we assume that none of the subscriptions are still being used (i.e., all are candidates for disposal).
+        // Then, during evaluation, we cross off any that are in fact still being used.
+        var isInitial = state.pure ? undefined : !state.dependenciesCount,   // If we're evaluating when there are no previous dependencies, it must be the first time
+            dependencyDetectionContext = {
+                computedObservable: computedObservable,
+                disposalCandidates: state.dependencyTracking,
+                disposalCount: state.dependenciesCount
+            };
+
+        ko.dependencyDetection.begin({
+            callbackTarget: dependencyDetectionContext,
+            callback: computedBeginDependencyDetectionCallback,
+            computed: computedObservable,
+            isInitial: isInitial
+        });
+
+        state.dependencyTracking = {};
+        state.dependenciesCount = 0;
+
+        var newValue = this.evaluateImmediate_CallReadThenEndDependencyDetection(state, dependencyDetectionContext);
+
+        if (computedObservable.isDifferent(state.latestValue, newValue)) {
+            if (!state.isSleeping) {
+                computedObservable["notifySubscribers"](state.latestValue, "beforeChange");
+            }
+
+            state.latestValue = newValue;
+
+            if (state.isSleeping) {
+                computedObservable.updateVersion();
+            } else if (notifyChange) {
+                computedObservable["notifySubscribers"](state.latestValue);
+            }
+        }
+
+        if (isInitial) {
+            computedObservable["notifySubscribers"](state.latestValue, "awake");
+        }
+    },
+    evaluateImmediate_CallReadThenEndDependencyDetection: function (state, dependencyDetectionContext) {
+        // This function is really part of the evaluateImmediate_CallReadWithDependencyDetection logic.
+        // You'd never call it from anywhere else. Factoring it out means that evaluateImmediate_CallReadWithDependencyDetection
+        // can be independent of try/finally blocks, which contributes to saving about 40% off the CPU
+        // overhead of computed evaluation (on V8 at least).
 
         try {
-            // Initially, we assume that none of the subscriptions are still being used (i.e., all are candidates for disposal).
-            // Then, during evaluation, we cross off any that are in fact still being used.
-            var disposalCandidates = dependencyTracking,
-                disposalCount = _dependenciesCount,
-                isInitial = pure ? undefined : !_dependenciesCount;   // If we're evaluating when there are no previous dependencies, it must be the first time
-
-            ko.dependencyDetection.begin({
-                callback: function(subscribable, id) {
-                    if (!_isDisposed) {
-                        if (disposalCount && disposalCandidates[id]) {
-                            // Don't want to dispose this subscription, as it's still being used
-                            addDependencyTracking(id, subscribable, disposalCandidates[id]);
-                            delete disposalCandidates[id];
-                            --disposalCount;
-                        } else if (!dependencyTracking[id]) {
-                            // Brand new subscription - add it
-                            addDependencyTracking(id, subscribable, isSleeping ? { _target: subscribable } : subscribable.subscribe(evaluatePossiblyAsync));
-                        }
-                    }
-                },
-                computed: dependentObservable,
-                isInitial: isInitial
-            });
-
-            dependencyTracking = {};
-            _dependenciesCount = 0;
-
-            try {
-                var newValue = evaluatorFunctionTarget ? readFunction.call(evaluatorFunctionTarget) : readFunction();
-
-            } finally {
-                ko.dependencyDetection.end();
-
-                // For each subscription no longer being used, remove it from the active subscriptions list and dispose it
-                if (disposalCount && !isSleeping) {
-                    ko.utils.objectForEach(disposalCandidates, function(id, toDispose) {
-                        if (toDispose.dispose)
-                            toDispose.dispose();
-                    });
-                }
-
-                _needsEvaluation = false;
-            }
-
-            if (dependentObservable.isDifferent(_latestValue, newValue)) {
-                if (!isSleeping) {
-                    notify(_latestValue, "beforeChange");
-                }
-
-                _latestValue = newValue;
-                if (DEBUG) dependentObservable._latestValue = _latestValue;
-
-                if (isSleeping) {
-                    dependentObservable.updateVersion();
-                } else if (notifyChange) {
-                    notify(_latestValue);
-                }
-            }
-
-            if (isInitial) {
-                notify(_latestValue, "awake");
-            }
+            var readFunction = state.readFunction;
+            return state.evaluatorFunctionTarget ? readFunction.call(state.evaluatorFunctionTarget) : readFunction();
         } finally {
-            _isBeingEvaluated = false;
-        }
+            ko.dependencyDetection.end();
 
-        if (!_dependenciesCount)
-            dispose();
-    }
-
-    function dependentObservable() {
-        if (arguments.length > 0) {
-            if (typeof writeFunction === "function") {
-                // Writing a value
-                writeFunction.apply(evaluatorFunctionTarget, arguments);
-            } else {
-                throw new Error("Cannot write a value to a ko.computed unless you specify a 'write' option. If you wish to read the current value, don't pass any parameters.");
+            // For each subscription no longer being used, remove it from the active subscriptions list and dispose it
+            if (dependencyDetectionContext.disposalCount && !state.isSleeping) {
+                ko.utils.objectForEach(dependencyDetectionContext.disposalCandidates, computedDisposeDependencyCallback);
             }
-            return this; // Permits chained assignments
-        } else {
-            // Reading the value
-            ko.dependencyDetection.registerDependency(dependentObservable);
-            if (_needsEvaluation || (isSleeping && haveDependenciesChanged())) {
-                evaluateImmediate();
-            }
-            return _latestValue;
-        }
-    }
 
-    function peek() {
+            state.isStale = false;
+        }
+    },
+    peek: function () {
         // Peek won't re-evaluate, except while the computed is sleeping or to get the initial value when "deferEvaluation" is set.
-        if ((_needsEvaluation && !_dependenciesCount) || (isSleeping && haveDependenciesChanged())) {
-            evaluateImmediate();
+        var state = this[computedState];
+        if ((state.isStale && !state.dependenciesCount) || (state.isSleeping && this.haveDependenciesChanged())) {
+            this.evaluateImmediate();
         }
-        return _latestValue;
-    }
+        return state.latestValue;
+    },
+    limit: function (limitFunction) {
+        // Override the limit function with one that delays evaluation as well
+        ko.subscribable['fn'].limit.call(this, limitFunction);
+        this._evalDelayed = function () {
+            this._limitBeforeChange(this[computedState].latestValue);
 
-    function isActive() {
-        return _needsEvaluation || _dependenciesCount > 0;
-    }
+            this[computedState].isStale = true; // Mark as dirty
 
-    function notify(value, event) {
-        dependentObservable["notifySubscribers"](value, event);
-    }
-
-    // By here, "options" is always non-null
-    var writeFunction = options["write"],
-        disposeWhenNodeIsRemoved = options["disposeWhenNodeIsRemoved"] || options.disposeWhenNodeIsRemoved || null,
-        disposeWhenOption = options["disposeWhen"] || options.disposeWhen,
-        disposeWhen = disposeWhenOption,
-        dispose = disposeComputed,
-        dependencyTracking = {},
-        _dependenciesCount = 0,
-        evaluationTimeoutInstance = null;
-
-    if (!evaluatorFunctionTarget)
-        evaluatorFunctionTarget = options["owner"];
-
-    ko.subscribable.call(dependentObservable);
-    ko.utils.setPrototypeOfOrExtend(dependentObservable, ko.dependentObservable['fn']);
-
-    dependentObservable.peek = peek;
-    dependentObservable.getDependenciesCount = function () { return _dependenciesCount; };
-    dependentObservable.hasWriteFunction = typeof writeFunction === "function";
-    dependentObservable.dispose = function () { dispose(); };
-    dependentObservable.isActive = isActive;
-
-    // Replace the limit function with one that delays evaluation as well.
-    var originalLimit = dependentObservable.limit;
-    dependentObservable.limit = function(limitFunction) {
-        originalLimit.call(dependentObservable, limitFunction);
-        dependentObservable._evalRateLimited = function() {
-            dependentObservable._rateLimitedBeforeChange(_latestValue);
-
-            _needsEvaluation = true;    // Mark as dirty
-
-            // Pass the observable to the rate-limit code, which will access it when
+            // Pass the observable to the "limit" code, which will access it when
             // it's time to do the notification.
-            dependentObservable._rateLimitedChange(dependentObservable);
+            this._limitChange(this);
         }
-    };
+    },
+    dispose: function () {
+        var state = this[computedState];
+        if (!state.isSleeping && state.dependencyTracking) {
+            ko.utils.objectForEach(state.dependencyTracking, function (id, dependency) {
+                if (dependency.dispose)
+                    dependency.dispose();
+            });
+        }
+        if (state.disposeWhenNodeIsRemoved && state.domNodeDisposalCallback) {
+            ko.utils.domNodeDisposal.removeDisposeCallback(state.disposeWhenNodeIsRemoved, state.domNodeDisposalCallback);
+        }
+        state.dependencyTracking = null;
+        state.dependenciesCount = 0;
+        state.isDisposed = true;
+        state.isStale = false;
+        state.isSleeping = false;
+        state.disposeWhenNodeIsRemoved = null;
+    }
+};
 
-    if (options['pure']) {
-        pure = true;
-        isSleeping = true;     // Starts off sleeping; will awake on the first subscription
-        dependentObservable.beforeSubscriptionAdd = function (event) {
-            // If asleep, wake up the computed by subscribing to any dependencies.
-            if (!_isDisposed && isSleeping && event == 'change') {
-                isSleeping = false;
-                if (_needsEvaluation || haveDependenciesChanged()) {
-                    dependencyTracking = null;
-                    _dependenciesCount = 0;
-                    _needsEvaluation = true;
-                    evaluateImmediate();
-                } else {
-                    // First put the dependencies in order
-                    var dependeciesOrder = [];
-                    ko.utils.objectForEach(dependencyTracking, function (id, dependency) {
-                        dependeciesOrder[dependency._order] = id;
-                    });
-                    // Next, subscribe to each one
-                    ko.utils.arrayForEach(dependeciesOrder, function(id, order) {
-                        var dependency = dependencyTracking[id],
-                            subscription = dependency._target.subscribe(evaluatePossiblyAsync);
-                        subscription._order = order;
-                        subscription._version = dependency._version;
-                        dependencyTracking[id] = subscription;
-                    });
-                }
-                if (!_isDisposed) {     // test since evaluating could trigger disposal
-                    notify(_latestValue, "awake");
-                }
-            }
-        };
-
-        dependentObservable.afterSubscriptionRemove = function (event) {
-            if (!_isDisposed && event == 'change' && !dependentObservable.hasSubscriptionsForEvent('change')) {
-                ko.utils.objectForEach(dependencyTracking, function (id, dependency) {
-                    if (dependency.dispose) {
-                        dependencyTracking[id] = {
-                            _target: dependency._target,
-                            _order: dependency._order,
-                            _version: dependency._version
-                        };
-                        dependency.dispose();
-                    }
+var pureComputedOverrides = {
+    beforeSubscriptionAdd: function (event) {
+        // If asleep, wake up the computed by subscribing to any dependencies.
+        var computedObservable = this,
+            state = computedObservable[computedState];
+        if (!state.isDisposed && state.isSleeping && event == 'change') {
+            state.isSleeping = false;
+            if (state.isStale || computedObservable.haveDependenciesChanged()) {
+                state.dependencyTracking = null;
+                state.dependenciesCount = 0;
+                state.isStale = true;
+                computedObservable.evaluateImmediate();
+            } else {
+                // First put the dependencies in order
+                var dependeciesOrder = [];
+                ko.utils.objectForEach(state.dependencyTracking, function (id, dependency) {
+                    dependeciesOrder[dependency._order] = id;
                 });
-                isSleeping = true;
-                notify(undefined, "asleep");
+                // Next, subscribe to each one
+                ko.utils.arrayForEach(dependeciesOrder, function (id, order) {
+                    var dependency = state.dependencyTracking[id],
+                        subscription = computedObservable.subscribeToDependency(dependency._target);
+                    subscription._order = order;
+                    subscription._version = dependency._version;
+                    state.dependencyTracking[id] = subscription;
+                });
             }
-        };
-
+            if (!state.isDisposed) {     // test since evaluating could trigger disposal
+                computedObservable["notifySubscribers"](state.latestValue, "awake");
+            }
+        }
+    },
+    afterSubscriptionRemove: function (event) {
+        var state = this[computedState];
+        if (!state.isDisposed && event == 'change' && !this.hasSubscriptionsForEvent('change')) {
+            ko.utils.objectForEach(state.dependencyTracking, function (id, dependency) {
+                if (dependency.dispose) {
+                    state.dependencyTracking[id] = {
+                        _target: dependency._target,
+                        _order: dependency._order,
+                        _version: dependency._version
+                    };
+                    dependency.dispose();
+                }
+            });
+            state.isSleeping = true;
+            this["notifySubscribers"](undefined, "asleep");
+        }
+    },
+    getVersion: function () {
         // Because a pure computed is not automatically updated while it is sleeping, we can't
         // simply return the version number. Instead, we check if any of the dependencies have
         // changed and conditionally re-evaluate the computed observable.
-        dependentObservable._originalGetVersion = dependentObservable.getVersion;
-        dependentObservable.getVersion = function () {
-            if (isSleeping && (_needsEvaluation || haveDependenciesChanged())) {
-                evaluateImmediate();
-            }
-            return dependentObservable._originalGetVersion();
-        };
-    } else if (options['deferEvaluation']) {
-        // This will force a computed with deferEvaluation to evaluate when the first subscriptions is registered.
-        dependentObservable.beforeSubscriptionAdd = function (event) {
-            if (event == 'change' || event == 'beforeChange') {
-                peek();
-            }
+        var state = this[computedState];
+        if (state.isSleeping && (state.isStale || this.haveDependenciesChanged())) {
+            this.evaluateImmediate();
+        }
+        return ko.subscribable['fn'].getVersion.call(this);
+    }
+};
+
+var deferEvaluationOverrides = {
+    beforeSubscriptionAdd: function (event) {
+        // This will force a computed with deferEvaluation to evaluate when the first subscription is registered.
+        if (event == 'change' || event == 'beforeChange') {
+            this.peek();
         }
     }
-
-    ko.exportProperty(dependentObservable, 'peek', dependentObservable.peek);
-    ko.exportProperty(dependentObservable, 'dispose', dependentObservable.dispose);
-    ko.exportProperty(dependentObservable, 'isActive', dependentObservable.isActive);
-    ko.exportProperty(dependentObservable, 'getDependenciesCount', dependentObservable.getDependenciesCount);
-
-    // Add a "disposeWhen" callback that, on each evaluation, disposes if the node was removed without using ko.removeNode.
-    if (disposeWhenNodeIsRemoved) {
-        // Since this computed is associated with a DOM node, and we don't want to dispose the computed
-        // until the DOM node is *removed* from the document (as opposed to never having been in the document),
-        // we'll prevent disposal until "disposeWhen" first returns false.
-        _suppressDisposalUntilDisposeWhenReturnsFalse = true;
-
-        // Only watch for the node's disposal if the value really is a node. It might not be,
-        // e.g., { disposeWhenNodeIsRemoved: true } can be used to opt into the "only dispose
-        // after first false result" behaviour even if there's no specific node to watch. This
-        // technique is intended for KO's internal use only and shouldn't be documented or used
-        // by application code, as it's likely to change in a future version of KO.
-        if (disposeWhenNodeIsRemoved.nodeType) {
-            disposeWhen = function () {
-                return !ko.utils.domNodeIsAttachedToDocument(disposeWhenNodeIsRemoved) || (disposeWhenOption && disposeWhenOption());
-            };
-        }
-    }
-
-    // Evaluate, unless sleeping or deferEvaluation is true
-    if (!isSleeping && !options['deferEvaluation'])
-        evaluateImmediate();
-
-    // Attach a DOM node disposal callback so that the computed will be proactively disposed as soon as the node is
-    // removed using ko.removeNode. But skip if isActive is false (there will never be any dependencies to dispose).
-    if (disposeWhenNodeIsRemoved && isActive() && disposeWhenNodeIsRemoved.nodeType) {
-        dispose = function() {
-            ko.utils.domNodeDisposal.removeDisposeCallback(disposeWhenNodeIsRemoved, dispose);
-            disposeComputed();
-        };
-        ko.utils.domNodeDisposal.addDisposeCallback(disposeWhenNodeIsRemoved, dispose);
-    }
-
-    return dependentObservable;
 };
-
-ko.isComputed = function(instance) {
-    return ko.hasPrototype(instance, ko.dependentObservable);
-};
-
-var protoProp = ko.observable.protoProperty; // == "__ko_proto__"
-ko.dependentObservable[protoProp] = ko.observable;
-
-ko.dependentObservable['fn'] = {
-    "equalityComparer": valuesArePrimitiveAndEqual
-};
-ko.dependentObservable['fn'][protoProp] = ko.dependentObservable;
 
 // Note that for browsers that don't support proto assignment, the
-// inheritance chain is created manually in the ko.dependentObservable constructor
+// inheritance chain is created manually in the ko.computed constructor
 if (ko.utils.canSetPrototype) {
-    ko.utils.setPrototypeOf(ko.dependentObservable['fn'], ko.subscribable['fn']);
+    ko.utils.setPrototypeOf(computedFn, ko.subscribable['fn']);
 }
 
-ko.exportSymbol('dependentObservable', ko.dependentObservable);
-ko.exportSymbol('computed', ko.dependentObservable); // Make "ko.computed" an alias for "ko.dependentObservable"
+// Set the proto chain values for ko.hasPrototype
+var protoProp = ko.observable.protoProperty; // == "__ko_proto__"
+ko.computed[protoProp] = ko.observable;
+computedFn[protoProp] = ko.computed;
+
+ko.isComputed = function (instance) {
+    return ko.hasPrototype(instance, ko.computed);
+};
+
+ko.isPureComputed = function (instance) {
+    return ko.hasPrototype(instance, ko.computed)
+        && instance[computedState] && instance[computedState].pure;
+};
+
+ko.exportSymbol('computed', ko.computed);
+ko.exportSymbol('dependentObservable', ko.computed);    // export ko.dependentObservable for backwards compatibility (1.x)
 ko.exportSymbol('isComputed', ko.isComputed);
+ko.exportSymbol('isPureComputed', ko.isPureComputed);
+ko.exportSymbol('computed.fn', computedFn);
+ko.exportProperty(computedFn, 'peek', computedFn.peek);
+ko.exportProperty(computedFn, 'dispose', computedFn.dispose);
+ko.exportProperty(computedFn, 'isActive', computedFn.isActive);
+ko.exportProperty(computedFn, 'getDependenciesCount', computedFn.getDependenciesCount);
 
 ko.pureComputed = function (evaluatorFunctionOrOptions, evaluatorFunctionTarget) {
     if (typeof evaluatorFunctionOrOptions === 'function') {
@@ -20036,7 +20605,7 @@ ko.exportSymbol('pureComputed', ko.pureComputed);
         visitedObjects = visitedObjects || new objectLookup();
 
         rootObject = mapInputCallback(rootObject);
-        var canHaveProperties = (typeof rootObject == "object") && (rootObject !== null) && (rootObject !== undefined) && (!(rootObject instanceof Date)) && (!(rootObject instanceof String)) && (!(rootObject instanceof Number)) && (!(rootObject instanceof Boolean));
+        var canHaveProperties = (typeof rootObject == "object") && (rootObject !== null) && (rootObject !== undefined) && (!(rootObject instanceof RegExp)) && (!(rootObject instanceof Date)) && (!(rootObject instanceof String)) && (!(rootObject instanceof Number)) && (!(rootObject instanceof Boolean));
         if (!canHaveProperties)
             return rootObject;
 
@@ -20649,14 +21218,16 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
 (function () {
     ko.bindingHandlers = {};
 
-    // The following element types will not be recursed into during binding. In the future, we
-    // may consider adding <template> to this list, because such elements' contents are always
-    // intended to be bound in a different context from where they appear in the document.
+    // The following element types will not be recursed into during binding.
     var bindingDoesNotRecurseIntoElementTypes = {
         // Don't want bindings that operate on text nodes to mutate <script> and <textarea> contents,
-        // because it's unexpected and a potential XSS issue
+        // because it's unexpected and a potential XSS issue.
+        // Also bindings should not operate on <template> elements since this breaks in Internet Explorer
+        // and because such elements' contents are always intended to be bound in a different context
+        // from where they appear in the document.
         'script': true,
-        'textarea': true
+        'textarea': true,
+        'template': true
     };
 
     // Use an overridable method for retrieving binding handlers so that a plugins may support dynamically created handlers
@@ -20673,7 +21244,7 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
         // any child contexts, must be updated when the view model is changed.
         function updateContext() {
             // Most of the time, the context will directly get a view model object, but if a function is given,
-            // we call the function to retrieve the view model. If the function accesses any obsevables or returns
+            // we call the function to retrieve the view model. If the function accesses any observables or returns
             // an observable, the dependency is tracked, and those observables can later cause the binding
             // context to be updated.
             var dataItemOrObservable = isFunc ? dataItemOrAccessor() : dataItemOrAccessor,
@@ -20755,7 +21326,7 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
     }
 
     // Extend the binding context hierarchy with a new view model object. If the parent context is watching
-    // any obsevables, the new child context will automatically get a dependency on the parent context.
+    // any observables, the new child context will automatically get a dependency on the parent context.
     // But this does not mean that the $data value of the child context will also get updated. If the child
     // view model also depends on the parent view model, you must provide a function that returns the correct
     // view model on each update.
@@ -20949,7 +21520,7 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
             var bindingsUpdater = ko.dependentObservable(
                 function() {
                     bindings = sourceBindings ? sourceBindings(bindingContext, node) : getBindings.call(provider, node, bindingContext);
-                    // Register a dependency on the binding context to support obsevable view models.
+                    // Register a dependency on the binding context to support observable view models.
                     if (bindings && bindingContext._subscribable)
                         bindingContext._subscribable();
                     return bindings;
@@ -21127,7 +21698,7 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
                         callback(cachedDefinition.definition);
                     });
                 } else {
-                    setTimeout(function() { callback(cachedDefinition.definition); }, 0);
+                    ko.tasks.schedule(function() { callback(cachedDefinition.definition); });
                 }
             } else {
                 // Join the loading process that is already underway, or start a new one.
@@ -21160,19 +21731,19 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
                 delete loadingSubscribablesCache[componentName];
 
                 // For API consistency, all loads complete asynchronously. However we want to avoid
-                // adding an extra setTimeout if it's unnecessary (i.e., the completion is already
-                // async) since setTimeout(..., 0) still takes about 16ms or more on most browsers.
+                // adding an extra task schedule if it's unnecessary (i.e., the completion is already
+                // async).
                 //
-                // You can bypass the 'always synchronous' feature by putting the synchronous:true
+                // You can bypass the 'always asynchronous' feature by putting the synchronous:true
                 // flag on your component configuration when you register it.
                 if (completedAsync || isSynchronousComponent) {
                     // Note that notifySubscribers ignores any dependencies read within the callback.
                     // See comment in loaderRegistryBehaviors.js for reasoning
                     subscribable['notifySubscribers'](definition);
                 } else {
-                    setTimeout(function() {
+                    ko.tasks.schedule(function() {
                         subscribable['notifySubscribers'](definition);
-                    }, 0);
+                    });
                 }
             });
             completedAsync = true;
@@ -21277,16 +21848,16 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
         }
 
         defaultConfigRegistry[componentName] = config;
-    }
+    };
 
     ko.components.isRegistered = function(componentName) {
-        return componentName in defaultConfigRegistry;
-    }
+        return defaultConfigRegistry.hasOwnProperty(componentName);
+    };
 
     ko.components.unregister = function(componentName) {
         delete defaultConfigRegistry[componentName];
         ko.components.clearCachedDefinition(componentName);
-    }
+    };
 
     ko.components.defaultLoader = {
         'getConfig': function(componentName, callback) {
@@ -21484,7 +22055,12 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
     // you can for example map specific tagNames to components that are not preregistered.
     ko.components['getComponentNameForNode'] = function(node) {
         var tagNameLower = ko.utils.tagNameLower(node);
-        return ko.components.isRegistered(tagNameLower) && tagNameLower;
+        if (ko.components.isRegistered(tagNameLower)) {
+            // Try to determine that this node can be considered a *custom* element; see https://github.com/knockout/knockout/issues/1603
+            if (tagNameLower.indexOf('-') != -1 || ('' + node) == "[object HTMLUnknownElement]" || (ko.utils.ieVersion <= 8 && node.tagName === tagNameLower)) {
+                return tagNameLower;
+            }
+        }
     };
 
     ko.components.addBindingsForCustomElement = function(allBindings, node, bindingContext, valueAccessors) {
@@ -21601,7 +22177,7 @@ ko.exportSymbol('bindingProvider', ko.bindingProvider);
                     if (typeof currentViewModelDispose === 'function') {
                         currentViewModelDispose.call(currentViewModel);
                     }
-
+                    currentViewModel = null;
                     // Any in-flight loading operation is no longer relevant, so make sure we ignore its completion
                     currentLoadingOperationId = null;
                 },
@@ -21745,21 +22321,25 @@ ko.bindingHandlers['checked'] = {
             }
 
             var modelValue = ko.dependencyDetection.ignore(valueAccessor);
-            if (isValueArray) {
+            if (valueIsArray) {
+                var writableValue = rawValueIsNonArrayObservable ? modelValue.peek() : modelValue;
                 if (oldElemValue !== elemValue) {
                     // When we're responding to the checkedValue changing, and the element is
                     // currently checked, replace the old elem value with the new elem value
                     // in the model array.
                     if (isChecked) {
-                        ko.utils.addOrRemoveItem(modelValue, elemValue, true);
-                        ko.utils.addOrRemoveItem(modelValue, oldElemValue, false);
+                        ko.utils.addOrRemoveItem(writableValue, elemValue, true);
+                        ko.utils.addOrRemoveItem(writableValue, oldElemValue, false);
                     }
 
                     oldElemValue = elemValue;
                 } else {
                     // When we're responding to the user having checked/unchecked a checkbox,
                     // add/remove the element value to the model array.
-                    ko.utils.addOrRemoveItem(modelValue, elemValue, isChecked);
+                    ko.utils.addOrRemoveItem(writableValue, elemValue, isChecked);
+                }
+                if (rawValueIsNonArrayObservable && ko.isWriteableObservable(modelValue)) {
+                    modelValue(writableValue);
                 }
             } else {
                 ko.expressionRewriting.writeValueToProperty(modelValue, allBindings, 'checked', elemValue, true);
@@ -21771,7 +22351,7 @@ ko.bindingHandlers['checked'] = {
             // It runs in response to changes in the bound (checked) value.
             var modelValue = ko.utils.unwrapObservable(valueAccessor());
 
-            if (isValueArray) {
+            if (valueIsArray) {
                 // When a checkbox is bound to an array, being checked represents its value being present in that array
                 element.checked = ko.utils.arrayIndexOf(modelValue, checkedValue()) >= 0;
             } else if (isCheckbox) {
@@ -21791,9 +22371,11 @@ ko.bindingHandlers['checked'] = {
             return;
         }
 
-        var isValueArray = isCheckbox && (ko.utils.unwrapObservable(valueAccessor()) instanceof Array),
-            oldElemValue = isValueArray ? checkedValue() : undefined,
-            useCheckedValue = isRadio || isValueArray;
+        var rawValue = valueAccessor(),
+            valueIsArray = isCheckbox && (ko.utils.unwrapObservable(rawValue) instanceof Array),
+            rawValueIsNonArrayObservable = !(valueIsArray && rawValue.push && rawValue.splice),
+            oldElemValue = valueIsArray ? checkedValue() : undefined,
+            useCheckedValue = isRadio || valueIsArray;
 
         // IE 6 won't allow radio buttons to be selected unless they have a name
         if (isRadio && !element.name)
@@ -21807,6 +22389,8 @@ ko.bindingHandlers['checked'] = {
 
         // The second responds to changes in the model value (the one associated with the checked binding)
         ko.computed(updateView, null, { disposeWhenNodeIsRemoved: element });
+
+        rawValue = undefined;
     }
 };
 ko.expressionRewriting.twoWayBindings['checked'] = true;
@@ -21827,7 +22411,7 @@ ko.bindingHandlers['css'] = {
                 ko.utils.toggleDomNodeCssClass(element, className, shouldHaveClass);
             });
         } else {
-            value = String(value || ''); // Make sure we don't try to store or set a non-string value
+            value = ko.utils.stringTrim(String(value || '')); // Make sure we don't try to store or set a non-string value
             ko.utils.toggleDomNodeCssClass(element, element[classesWrittenByBindingKey], false);
             element[classesWrittenByBindingKey] = value;
             ko.utils.toggleDomNodeCssClass(element, value, true);
@@ -21978,10 +22562,20 @@ ko.bindingHandlers['hasfocus'] = {
         ko.utils.registerEventHandler(element, "focusout",  handleElementFocusOut); // For IE
     },
     'update': function(element, valueAccessor) {
-        var value = !!ko.utils.unwrapObservable(valueAccessor()); //force boolean to compare with last value
+        var value = !!ko.utils.unwrapObservable(valueAccessor());
+
         if (!element[hasfocusUpdatingProperty] && element[hasfocusLastValue] !== value) {
             value ? element.focus() : element.blur();
-            ko.dependencyDetection.ignore(ko.utils.triggerEvent, null, [element, value ? "focusin" : "focusout"]); // For IE, which doesn't reliably fire "focus" or "blur" events synchronously
+
+            // In IE, the blur method doesn't always cause the element to lose focus (for example, if the window is not in focus).
+            // Setting focus to the body element does seem to be reliable in IE, but should only be used if we know that the current
+            // element was focused already.
+            if (!value && element[hasfocusLastValue]) {
+                element.ownerDocument.body.focus();
+            }
+
+            // For IE, which doesn't reliably fire "focus" or "blur" events synchronously
+            ko.dependencyDetection.ignore(ko.utils.triggerEvent, null, [element, value ? "focusin" : "focusout"]);
         }
     }
 };
@@ -22226,13 +22820,19 @@ ko.bindingHandlers['selectedOptions'] = {
         if (ko.utils.tagNameLower(element) != "select")
             throw new Error("values binding applies only to SELECT elements");
 
-        var newValue = ko.utils.unwrapObservable(valueAccessor());
+        var newValue = ko.utils.unwrapObservable(valueAccessor()),
+            previousScrollTop = element.scrollTop;
+
         if (newValue && typeof newValue.length == "number") {
             ko.utils.arrayForEach(element.getElementsByTagName("option"), function(node) {
                 var isSelected = ko.utils.arrayIndexOf(newValue, ko.selectExtensions.readValue(node)) >= 0;
-                ko.utils.setOptionNodeSelectionState(node, isSelected);
+                if (node.selected != isSelected) {      // This check prevents flashing of the select element in IE
+                    ko.utils.setOptionNodeSelectionState(node, isSelected);
+                }
             });
         }
+
+        element.scrollTop = previousScrollTop;
     }
 };
 ko.expressionRewriting.twoWayBindings['selectedOptions'] = true;
@@ -22351,9 +22951,13 @@ ko.bindingHandlers['textInput'] = {
                 // such as rateLimit. Such updates, if not ignored, can cause keystrokes to be lost.
                 elementValueBeforeEvent = element.value;
                 var handler = DEBUG ? updateModel.bind(element, {type: event.type}) : updateModel;
-                timeoutHandle = setTimeout(handler, 4);
+                timeoutHandle = ko.utils.setTimeout(handler, 4);
             }
         };
+
+        // IE9 will mess up the DOM if you handle events synchronously which results in DOM changes (such as other bindings);
+        // so we'll make sure all updates are asynchronous
+        var ieUpdateModel = ko.utils.ieVersion == 9 ? deferUpdateModel : updateModel;
 
         var updateView = function () {
             var modelValue = ko.utils.unwrapObservable(valueAccessor());
@@ -22363,7 +22967,7 @@ ko.bindingHandlers['textInput'] = {
             }
 
             if (elementValueBeforeEvent !== undefined && modelValue === elementValueBeforeEvent) {
-                setTimeout(updateView, 4);
+                ko.utils.setTimeout(updateView, 4);
                 return;
             }
 
@@ -22396,7 +23000,7 @@ ko.bindingHandlers['textInput'] = {
                 // when using autocomplete, we'll use 'propertychange' for it also.
                 onEvent('propertychange', function(event) {
                     if (event.propertyName === 'value') {
-                        updateModel(event);
+                        ieUpdateModel(event);
                     }
                 });
 
@@ -22413,7 +23017,7 @@ ko.bindingHandlers['textInput'] = {
                     // out of the field, and cutting or deleting text using the context menu. 'selectionchange'
                     // can detect all of those except dragging text out of the field, for which we use 'dragend'.
                     // These are also needed in IE8 because of the bug described above.
-                    registerForSelectionChangeEvent(element, updateModel);  // 'selectionchange' covers cut, paste, drop, delete, etc.
+                    registerForSelectionChangeEvent(element, ieUpdateModel);  // 'selectionchange' covers cut, paste, drop, delete, etc.
                     onEvent('dragend', deferUpdateModel);
                 }
             } else {
@@ -22526,7 +23130,7 @@ ko.bindingHandlers['value'] = {
                     // techniques like rateLimit can trigger model changes at critical moments that will
                     // override the user's inputs, causing keystrokes to be lost.
                     elementValueBeforeEvent = ko.selectExtensions.readValue(element);
-                    setTimeout(valueUpdateHandler, 0);
+                    ko.utils.setTimeout(valueUpdateHandler, 0);
                 };
                 eventName = eventName.substring("after".length);
             }
@@ -22538,7 +23142,7 @@ ko.bindingHandlers['value'] = {
             var elementValue = ko.selectExtensions.readValue(element);
 
             if (elementValueBeforeEvent !== null && newValue === elementValueBeforeEvent) {
-                setTimeout(updateFromModel, 0);
+                ko.utils.setTimeout(updateFromModel, 0);
                 return;
             }
 
@@ -22560,7 +23164,7 @@ ko.bindingHandlers['value'] = {
                         // Workaround for IE6 bug: It won't reliably apply values to SELECT nodes during the same execution thread
                         // right after you've changed the set of OPTION nodes on it. So for that node type, we'll schedule a second thread
                         // to apply the value as well.
-                        setTimeout(applyValueAction, 0);
+                        ko.utils.setTimeout(applyValueAction, 0);
                     }
                 } else {
                     ko.selectExtensions.writeValue(element, newValue);
@@ -22752,14 +23356,29 @@ ko.exportSymbol('__tr_ambtns', ko.templateRewriting.applyMemoizedBindingsToNextS
 
     // ---- ko.templateSources.domElement -----
 
+    // template types
+    var templateScript = 1,
+        templateTextArea = 2,
+        templateTemplate = 3,
+        templateElement = 4;
+
     ko.templateSources.domElement = function(element) {
         this.domElement = element;
+
+        if (element) {
+            var tagNameLower = ko.utils.tagNameLower(element);
+            this.templateType =
+                tagNameLower === "script" ? templateScript :
+                tagNameLower === "textarea" ? templateTextArea :
+                    // For browsers with proper <template> element support, where the .content property gives a document fragment
+                tagNameLower == "template" && element.content && element.content.nodeType === 11 ? templateTemplate :
+                templateElement;
+        }
     }
 
     ko.templateSources.domElement.prototype['text'] = function(/* valueToWrite */) {
-        var tagNameLower = ko.utils.tagNameLower(this.domElement),
-            elemContentsProperty = tagNameLower === "script" ? "text"
-                                 : tagNameLower === "textarea" ? "value"
+        var elemContentsProperty = this.templateType === templateScript ? "text"
+                                 : this.templateType === templateTextArea ? "value"
                                  : "innerHTML";
 
         if (arguments.length == 0) {
@@ -22782,12 +23401,34 @@ ko.exportSymbol('__tr_ambtns', ko.templateRewriting.applyMemoizedBindingsToNextS
         }
     };
 
+    var templatesDomDataKey = ko.utils.domData.nextKey();
+    function getTemplateDomData(element) {
+        return ko.utils.domData.get(element, templatesDomDataKey) || {};
+    }
+    function setTemplateDomData(element, data) {
+        ko.utils.domData.set(element, templatesDomDataKey, data);
+    }
+
+    ko.templateSources.domElement.prototype['nodes'] = function(/* valueToWrite */) {
+        var element = this.domElement;
+        if (arguments.length == 0) {
+            var templateData = getTemplateDomData(element),
+                containerData = templateData.containerData;
+            return containerData || (
+                this.templateType === templateTemplate ? element.content :
+                this.templateType === templateElement ? element :
+                undefined);
+        } else {
+            var valueToWrite = arguments[0];
+            setTemplateDomData(element, {containerData: valueToWrite});
+        }
+    };
+
     // ---- ko.templateSources.anonymousTemplate -----
     // Anonymous templates are normally saved/retrieved as DOM nodes through "nodes".
     // For compatibility, you can also read "text"; it will be serialized from the nodes on demand.
     // Writing to "text" is still supported, but then the template data will not be available as DOM nodes.
 
-    var anonymousTemplatesDomDataKey = ko.utils.domData.nextKey();
     ko.templateSources.anonymousTemplate = function(element) {
         this.domElement = element;
     }
@@ -22795,22 +23436,13 @@ ko.exportSymbol('__tr_ambtns', ko.templateRewriting.applyMemoizedBindingsToNextS
     ko.templateSources.anonymousTemplate.prototype.constructor = ko.templateSources.anonymousTemplate;
     ko.templateSources.anonymousTemplate.prototype['text'] = function(/* valueToWrite */) {
         if (arguments.length == 0) {
-            var templateData = ko.utils.domData.get(this.domElement, anonymousTemplatesDomDataKey) || {};
+            var templateData = getTemplateDomData(this.domElement);
             if (templateData.textData === undefined && templateData.containerData)
                 templateData.textData = templateData.containerData.innerHTML;
             return templateData.textData;
         } else {
             var valueToWrite = arguments[0];
-            ko.utils.domData.set(this.domElement, anonymousTemplatesDomDataKey, {textData: valueToWrite});
-        }
-    };
-    ko.templateSources.domElement.prototype['nodes'] = function(/* valueToWrite */) {
-        if (arguments.length == 0) {
-            var templateData = ko.utils.domData.get(this.domElement, anonymousTemplatesDomDataKey) || {};
-            return templateData.containerData;
-        } else {
-            var valueToWrite = arguments[0];
-            ko.utils.domData.set(this.domElement, anonymousTemplatesDomDataKey, {containerData: valueToWrite});
+            setTemplateDomData(this.domElement, {textData: valueToWrite});
         }
     };
 
@@ -23152,7 +23784,7 @@ ko.utils.compareArrays = (function () {
         oldArray = oldArray || [];
         newArray = newArray || [];
 
-        if (oldArray.length <= newArray.length)
+        if (oldArray.length < newArray.length)
             return compareSmallArrayToBigArray(oldArray, newArray, statusNotInOld, statusNotInNew, options);
         else
             return compareSmallArrayToBigArray(newArray, oldArray, statusNotInNew, statusNotInOld, options);
@@ -23215,7 +23847,7 @@ ko.utils.compareArrays = (function () {
 
         // Set a limit on the number of consecutive non-matching comparisons; having it a multiple of
         // smlIndexMax keeps the time complexity of this algorithm linear.
-        ko.utils.findMovesInArrayComparison(notInSml, notInBig, smlIndexMax * 10);
+        ko.utils.findMovesInArrayComparison(notInBig, notInSml, !options['dontLimitMoves'] && smlIndexMax * 10);
 
         return editScript.reverse();
     }
@@ -23256,7 +23888,8 @@ ko.exportSymbol('utils.compareArrays', ko.utils.compareArrays);
         return { mappedNodes : mappedNodes, dependentObservable : (dependentObservable.isActive() ? dependentObservable : undefined) };
     }
 
-    var lastMappingResultDomDataKey = ko.utils.domData.nextKey();
+    var lastMappingResultDomDataKey = ko.utils.domData.nextKey(),
+        deletedItemDummyValue = ko.utils.domData.nextKey();
 
     ko.utils.setDomNodeChildrenFromArrayMapping = function (domNode, array, mapping, options, callbackAfterAddingNodes) {
         // Compare the provided array against the previous one
@@ -23310,14 +23943,25 @@ ko.exportSymbol('utils.compareArrays', ko.utils.compareArrays);
                         mapData = lastMappingResult[lastMappingResultIndex];
 
                         // Stop tracking changes to the mapping for these nodes
-                        if (mapData.dependentObservable)
+                        if (mapData.dependentObservable) {
                             mapData.dependentObservable.dispose();
+                            mapData.dependentObservable = undefined;
+                        }
 
                         // Queue these nodes for later removal
-                        nodesToDelete.push.apply(nodesToDelete, ko.utils.fixUpContinuousNodeArray(mapData.mappedNodes, domNode));
-                        if (options['beforeRemove']) {
-                            itemsForBeforeRemoveCallbacks[i] = mapData;
-                            itemsToProcess.push(mapData);
+                        if (ko.utils.fixUpContinuousNodeArray(mapData.mappedNodes, domNode).length) {
+                            if (options['beforeRemove']) {
+                                newMappingResult.push(mapData);
+                                itemsToProcess.push(mapData);
+                                if (mapData.arrayEntry === deletedItemDummyValue) {
+                                    mapData = null;
+                                } else {
+                                    itemsForBeforeRemoveCallbacks[i] = mapData;
+                                }
+                            }
+                            if (mapData) {
+                                nodesToDelete.push.apply(nodesToDelete, mapData.mappedNodes);
+                            }
                         }
                     }
                     lastMappingResultIndex++;
@@ -23340,6 +23984,9 @@ ko.exportSymbol('utils.compareArrays', ko.utils.compareArrays);
                     break;
             }
         }
+
+        // Store a copy of the array items we just considered so we can difference it next time
+        ko.utils.domData.set(domNode, lastMappingResultDomDataKey, newMappingResult);
 
         // Call beforeMove first before any changes have been made to the DOM
         callCallback(options['beforeMove'], itemsForMoveCallbacks);
@@ -23373,12 +24020,18 @@ ko.exportSymbol('utils.compareArrays', ko.utils.compareArrays);
         // Perhaps we'll make that change in the future if this scenario becomes more common.
         callCallback(options['beforeRemove'], itemsForBeforeRemoveCallbacks);
 
+        // Replace the stored values of deleted items with a dummy value. This provides two benefits: it marks this item
+        // as already "removed" so we won't call beforeRemove for it again, and it ensures that the item won't match up
+        // with an actual item in the array and appear as "retained" or "moved".
+        for (i = 0; i < itemsForBeforeRemoveCallbacks.length; ++i) {
+            if (itemsForBeforeRemoveCallbacks[i]) {
+                itemsForBeforeRemoveCallbacks[i].arrayEntry = deletedItemDummyValue;
+            }
+        }
+
         // Finally call afterMove and afterAdd callbacks
         callCallback(options['afterMove'], itemsForMoveCallbacks);
         callCallback(options['afterAdd'], itemsForAfterAddCallbacks);
-
-        // Store a copy of the array items we just considered so we can difference it next time
-        ko.utils.domData.set(domNode, lastMappingResultDomDataKey, newMappingResult);
     }
 })();
 
@@ -23494,16 +24147,16 @@ ko.exportSymbol('nativeTemplateEngine', ko.nativeTemplateEngine);
 }());
 })();
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 (function (global){
 /**
  * @license
- * Lo-Dash 2.4.1 (Custom Build) <http://lodash.com/>
+ * Lo-Dash 2.4.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern -o ./dist/lodash.js`
  * Copyright 2012-2013 The Dojo Foundation <http://dojofoundation.org/>
  * Based on Underscore.js 1.5.2 <http://underscorejs.org/LICENSE>
  * Copyright 2009-2013 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
- * Available under MIT license <http://lodash.com/license>
+ * Available under MIT license <https://lodash.com/license>
  */
 ;(function() {
 
@@ -24992,6 +25645,7 @@ ko.exportSymbol('nativeTemplateEngine', ko.nativeTemplateEngine);
     var setBindData = !defineProperty ? noop : function(func, value) {
       descriptor.value = value;
       defineProperty(func, '__bindData__', descriptor);
+      descriptor.value = null;
     };
 
     /**
@@ -29637,7 +30291,7 @@ ko.exportSymbol('nativeTemplateEngine', ko.nativeTemplateEngine);
      * debugging. See http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-sourceurl
      *
      * For more information on precompiling templates see:
-     * http://lodash.com/custom-builds
+     * https://lodash.com/custom-builds
      *
      * For more information on Chrome extension sandboxes see:
      * http://developer.chrome.com/stable/extensions/sandboxingEval.html
@@ -30206,7 +30860,7 @@ ko.exportSymbol('nativeTemplateEngine', ko.nativeTemplateEngine);
      * @memberOf _
      * @type string
      */
-    lodash.VERSION = '2.4.1';
+    lodash.VERSION = '2.4.2';
 
     // add "Chaining" functions to the wrapper
     lodash.prototype.chain = wrapperChain;
@@ -30283,389 +30937,6 @@ ko.exportSymbol('nativeTemplateEngine', ko.nativeTemplateEngine);
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-
-},{}],25:[function(require,module,exports){
-(function() {
-  'use strict';
-
-  if (self.fetch) {
-    return
-  }
-
-  function normalizeName(name) {
-    if (typeof name !== 'string') {
-      name = String(name)
-    }
-    if (/[^a-z0-9\-#$%&'*+.\^_`|~]/i.test(name)) {
-      throw new TypeError('Invalid character in header field name')
-    }
-    return name.toLowerCase()
-  }
-
-  function normalizeValue(value) {
-    if (typeof value !== 'string') {
-      value = String(value)
-    }
-    return value
-  }
-
-  function Headers(headers) {
-    this.map = {}
-
-    if (headers instanceof Headers) {
-      headers.forEach(function(value, name) {
-        this.append(name, value)
-      }, this)
-
-    } else if (headers) {
-      Object.getOwnPropertyNames(headers).forEach(function(name) {
-        this.append(name, headers[name])
-      }, this)
-    }
-  }
-
-  Headers.prototype.append = function(name, value) {
-    name = normalizeName(name)
-    value = normalizeValue(value)
-    var list = this.map[name]
-    if (!list) {
-      list = []
-      this.map[name] = list
-    }
-    list.push(value)
-  }
-
-  Headers.prototype['delete'] = function(name) {
-    delete this.map[normalizeName(name)]
-  }
-
-  Headers.prototype.get = function(name) {
-    var values = this.map[normalizeName(name)]
-    return values ? values[0] : null
-  }
-
-  Headers.prototype.getAll = function(name) {
-    return this.map[normalizeName(name)] || []
-  }
-
-  Headers.prototype.has = function(name) {
-    return this.map.hasOwnProperty(normalizeName(name))
-  }
-
-  Headers.prototype.set = function(name, value) {
-    this.map[normalizeName(name)] = [normalizeValue(value)]
-  }
-
-  Headers.prototype.forEach = function(callback, thisArg) {
-    Object.getOwnPropertyNames(this.map).forEach(function(name) {
-      this.map[name].forEach(function(value) {
-        callback.call(thisArg, value, name, this)
-      }, this)
-    }, this)
-  }
-
-  function consumed(body) {
-    if (body.bodyUsed) {
-      return Promise.reject(new TypeError('Already read'))
-    }
-    body.bodyUsed = true
-  }
-
-  function fileReaderReady(reader) {
-    return new Promise(function(resolve, reject) {
-      reader.onload = function() {
-        resolve(reader.result)
-      }
-      reader.onerror = function() {
-        reject(reader.error)
-      }
-    })
-  }
-
-  function readBlobAsArrayBuffer(blob) {
-    var reader = new FileReader()
-    reader.readAsArrayBuffer(blob)
-    return fileReaderReady(reader)
-  }
-
-  function readBlobAsText(blob) {
-    var reader = new FileReader()
-    reader.readAsText(blob)
-    return fileReaderReady(reader)
-  }
-
-  var support = {
-    blob: 'FileReader' in self && 'Blob' in self && (function() {
-      try {
-        new Blob();
-        return true
-      } catch(e) {
-        return false
-      }
-    })(),
-    formData: 'FormData' in self,
-    arrayBuffer: 'ArrayBuffer' in self
-  }
-
-  function Body() {
-    this.bodyUsed = false
-
-
-    this._initBody = function(body) {
-      this._bodyInit = body
-      if (typeof body === 'string') {
-        this._bodyText = body
-      } else if (support.blob && Blob.prototype.isPrototypeOf(body)) {
-        this._bodyBlob = body
-      } else if (support.formData && FormData.prototype.isPrototypeOf(body)) {
-        this._bodyFormData = body
-      } else if (!body) {
-        this._bodyText = ''
-      } else if (support.arrayBuffer && ArrayBuffer.prototype.isPrototypeOf(body)) {
-        // Only support ArrayBuffers for POST method.
-        // Receiving ArrayBuffers happens via Blobs, instead.
-      } else {
-        throw new Error('unsupported BodyInit type')
-      }
-    }
-
-    if (support.blob) {
-      this.blob = function() {
-        var rejected = consumed(this)
-        if (rejected) {
-          return rejected
-        }
-
-        if (this._bodyBlob) {
-          return Promise.resolve(this._bodyBlob)
-        } else if (this._bodyFormData) {
-          throw new Error('could not read FormData body as blob')
-        } else {
-          return Promise.resolve(new Blob([this._bodyText]))
-        }
-      }
-
-      this.arrayBuffer = function() {
-        return this.blob().then(readBlobAsArrayBuffer)
-      }
-
-      this.text = function() {
-        var rejected = consumed(this)
-        if (rejected) {
-          return rejected
-        }
-
-        if (this._bodyBlob) {
-          return readBlobAsText(this._bodyBlob)
-        } else if (this._bodyFormData) {
-          throw new Error('could not read FormData body as text')
-        } else {
-          return Promise.resolve(this._bodyText)
-        }
-      }
-    } else {
-      this.text = function() {
-        var rejected = consumed(this)
-        return rejected ? rejected : Promise.resolve(this._bodyText)
-      }
-    }
-
-    if (support.formData) {
-      this.formData = function() {
-        return this.text().then(decode)
-      }
-    }
-
-    this.json = function() {
-      return this.text().then(JSON.parse)
-    }
-
-    return this
-  }
-
-  // HTTP methods whose capitalization should be normalized
-  var methods = ['DELETE', 'GET', 'HEAD', 'OPTIONS', 'POST', 'PUT']
-
-  function normalizeMethod(method) {
-    var upcased = method.toUpperCase()
-    return (methods.indexOf(upcased) > -1) ? upcased : method
-  }
-
-  function Request(input, options) {
-    options = options || {}
-    var body = options.body
-    if (Request.prototype.isPrototypeOf(input)) {
-      if (input.bodyUsed) {
-        throw new TypeError('Already read')
-      }
-      this.url = input.url
-      this.credentials = input.credentials
-      if (!options.headers) {
-        this.headers = new Headers(input.headers)
-      }
-      this.method = input.method
-      this.mode = input.mode
-      if (!body) {
-        body = input._bodyInit
-        input.bodyUsed = true
-      }
-    } else {
-      this.url = input
-    }
-
-    this.credentials = options.credentials || this.credentials || 'omit'
-    if (options.headers || !this.headers) {
-      this.headers = new Headers(options.headers)
-    }
-    this.method = normalizeMethod(options.method || this.method || 'GET')
-    this.mode = options.mode || this.mode || null
-    this.referrer = null
-
-    if ((this.method === 'GET' || this.method === 'HEAD') && body) {
-      throw new TypeError('Body not allowed for GET or HEAD requests')
-    }
-    this._initBody(body)
-  }
-
-  Request.prototype.clone = function() {
-    return new Request(this)
-  }
-
-  function decode(body) {
-    var form = new FormData()
-    body.trim().split('&').forEach(function(bytes) {
-      if (bytes) {
-        var split = bytes.split('=')
-        var name = split.shift().replace(/\+/g, ' ')
-        var value = split.join('=').replace(/\+/g, ' ')
-        form.append(decodeURIComponent(name), decodeURIComponent(value))
-      }
-    })
-    return form
-  }
-
-  function headers(xhr) {
-    var head = new Headers()
-    var pairs = xhr.getAllResponseHeaders().trim().split('\n')
-    pairs.forEach(function(header) {
-      var split = header.trim().split(':')
-      var key = split.shift().trim()
-      var value = split.join(':').trim()
-      head.append(key, value)
-    })
-    return head
-  }
-
-  Body.call(Request.prototype)
-
-  function Response(bodyInit, options) {
-    if (!options) {
-      options = {}
-    }
-
-    this._initBody(bodyInit)
-    this.type = 'default'
-    this.status = options.status
-    this.ok = this.status >= 200 && this.status < 300
-    this.statusText = options.statusText
-    this.headers = options.headers instanceof Headers ? options.headers : new Headers(options.headers)
-    this.url = options.url || ''
-  }
-
-  Body.call(Response.prototype)
-
-  Response.prototype.clone = function() {
-    return new Response(this._bodyInit, {
-      status: this.status,
-      statusText: this.statusText,
-      headers: new Headers(this.headers),
-      url: this.url
-    })
-  }
-
-  Response.error = function() {
-    var response = new Response(null, {status: 0, statusText: ''})
-    response.type = 'error'
-    return response
-  }
-
-  var redirectStatuses = [301, 302, 303, 307, 308]
-
-  Response.redirect = function(url, status) {
-    if (redirectStatuses.indexOf(status) === -1) {
-      throw new RangeError('Invalid status code')
-    }
-
-    return new Response(null, {status: status, headers: {location: url}})
-  }
-
-  self.Headers = Headers;
-  self.Request = Request;
-  self.Response = Response;
-
-  self.fetch = function(input, init) {
-    return new Promise(function(resolve, reject) {
-      var request
-      if (Request.prototype.isPrototypeOf(input) && !init) {
-        request = input
-      } else {
-        request = new Request(input, init)
-      }
-
-      var xhr = new XMLHttpRequest()
-
-      function responseURL() {
-        if ('responseURL' in xhr) {
-          return xhr.responseURL
-        }
-
-        // Avoid security warnings on getResponseHeader when not allowed by CORS
-        if (/^X-Request-URL:/m.test(xhr.getAllResponseHeaders())) {
-          return xhr.getResponseHeader('X-Request-URL')
-        }
-
-        return;
-      }
-
-      xhr.onload = function() {
-        var status = (xhr.status === 1223) ? 204 : xhr.status
-        if (status < 100 || status > 599) {
-          reject(new TypeError('Network request failed'))
-          return
-        }
-        var options = {
-          status: status,
-          statusText: xhr.statusText,
-          headers: headers(xhr),
-          url: responseURL()
-        }
-        var body = 'response' in xhr ? xhr.response : xhr.responseText;
-        resolve(new Response(body, options))
-      }
-
-      xhr.onerror = function() {
-        reject(new TypeError('Network request failed'))
-      }
-
-      xhr.open(request.method, request.url, true)
-
-      if (request.credentials === 'include') {
-        xhr.withCredentials = true
-      }
-
-      if ('responseType' in xhr && support.blob) {
-        xhr.responseType = 'blob'
-      }
-
-      request.headers.forEach(function(value, name) {
-        xhr.setRequestHeader(name, value)
-      })
-
-      xhr.send(typeof request._bodyInit === 'undefined' ? null : request._bodyInit)
-    })
-  }
-  self.fetch.polyfill = true
-})();
 
 },{}]},{},[1])
 
