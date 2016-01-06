@@ -29,18 +29,23 @@
     </div>
     <div class="infokala-push-top"></div>
     <div style="display: none" data-bind="visible: true, foreach: visibleMessages" class="container">
-      <div data-bind="click: $parent.cycleMessageState, css: { &quot;infokala-message-cycleable&quot;: $parent.isMessageCycleable($data), &quot;infokala-message-deleted&quot;: isDeleted }" class="infokala-message">
-        <div class="row">
+      <div data-bind="css: { &quot;infokala-message-cycleable&quot;: $parent.isMessageCycleable($data), &quot;infokala-message-deleted&quot;: isDeleted }" class="infokala-message">
+        <div data-bind="click: $parent.cycleMessageState" class="row infokala-action-row">
           <div class="col-md-12 text-muted">
-            <div class="pull-right"><span data-bind="visible: $parent.isMessageCycleable($data)"><span data-bind="text: state.name, css: state.labelClass" class="label"></span><span data-bind="with: $parent.nextState($data)" class="infokala-next-state"><span class="text-muted">&thinsp;&rArr;&thinsp;</span><span data-bind="text: name, css: labelClass" class="label"></span></span></span>&emsp;<span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default"></span>&emsp;<span data-bind="click: $parent.editMessage, clickBubble: false" class="btn btn-xs btn-primary infokala-edit-message-button">&#x270e;</span>&emsp;<span data-bind="click: $parent.deleteMessage, clickBubble: false" class="btn btn-xs btn-danger infokala-delete-message-button">&times;</span></div>
+            <div class="pull-right"><span data-bind="visible: $parent.isMessageCycleable($data)"><span data-bind="text: state.name, css: state.labelClass" class="label"></span><span data-bind="with: $parent.nextState($data)" class="infokala-next-state"><span class="text-muted">&thinsp;&rArr;&thinsp;</span><span data-bind="text: name, css: labelClass" class="label"></span></span></span>&emsp;<span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default"></span>&emsp;<span data-bind="click: $parent.openMessage, clickBubble: false" class="btn btn-xs btn-info infokala-open-message-button">?</span>&emsp;<span data-bind="click: $parent.editMessage, clickBubble: false" class="btn btn-xs btn-primary infokala-edit-message-button">&#x270e;</span>&emsp;<span data-bind="click: $parent.deleteMessage, clickBubble: false" class="btn btn-xs btn-danger infokala-delete-message-button">&times;</span></div>
             <div data-bind="text: formattedTime" class="small"></div>
           </div>
         </div>
         <div data-bind="css: {&quot;infokala-inactive&quot;: !state.active}" class="row"><strong data-bind="text: author" class="col-md-1"></strong>
-          <div data-bind="text: message, style: {&quot;display&quot;: $parent.editingMessage() === id ? &quot;none&quot; : &quot;&quot;}, css: {&quot;edit-pending&quot;: isEditPending}" class="col-md-11"></div>
+          <div data-bind="text: message, visible: $parent.editingMessage() !== id, css: {&quot;infokala-edit-pending&quot;: isEditPending}" class="col-md-11"></div>
           <form data-bind="submit: $parent.handleEdit" role="form" class="col-md-9">
-            <input type="text" data-bind="textInput: message, style: {&quot;display&quot;: $parent.editingMessage() === id ? &quot;&quot; : &quot;none&quot;}, click: function(){}, clickBubble: false, event: {blur: $parent.handleEdit}" class="form-control">
+            <input type="text" data-bind="textInput: message, visible: $parent.editingMessage() === id, click: function(){}, clickBubble: false, event: {blur: $parent.handleEdit}" class="form-control">
           </form>
+        </div>
+        <div data-bind="visible: $parent.detailsMessage() === id, foreach: $parent.messageEventList" class="row message-event">
+          <div data-bind="text: time" class="col-md-1 infokala-timestamp"></div>
+          <div data-bind="text: author + &quot;:&quot;" class="col-md-1"></div>
+          <div data-bind="html: html, css: classes" class="col-md-10"></div>
         </div>
       </div>
     </div>

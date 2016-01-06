@@ -6,6 +6,8 @@
   &:hover
     background-color #f8f8f8
 
+.infokala-action-row
+  &:hover
     .infokala-next-state
       display inline
 
@@ -29,7 +31,13 @@
 .infokala-message-deleted
   display none
 
-.edit-pending
+.infokala-edit-pending
+  font-style italic
+
+.infokala-timestamp
+  color silver
+
+.infokala-event-create, .infokala-event-delete, .infokala-event-statechange, .infokala-event-edit
   font-style italic
 
 @media screen

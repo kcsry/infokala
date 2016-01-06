@@ -6,7 +6,7 @@
 .infokala-message:hover {
   background-color: #f8f8f8;
 }
-.infokala-message:hover .infokala-next-state {
+.infokala-action-row:hover .infokala-next-state {
   display: inline;
 }
 .infokala-message-form {
@@ -30,7 +30,16 @@
 .infokala-message-deleted {
   display: none;
 }
-.edit-pending {
+.infokala-edit-pending {
+  font-style: italic;
+}
+.infokala-timestamp {
+  color: #c0c0c0;
+}
+.infokala-event-create,
+.infokala-event-delete,
+.infokala-event-statechange,
+.infokala-event-edit {
   font-style: italic;
 }
 @media screen {

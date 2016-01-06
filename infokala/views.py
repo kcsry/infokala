@@ -4,14 +4,12 @@ import logging
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404
 from django.views.generic import View
 
 from dateutil.parser import parse as parse_datetime
+from itertools import chain
 
-from .models import Message, MessageType, Workflow
-from .forms import MessagesGetForm
-
+from .models import Message, MessageType, Workflow, MessageCreateEvent, MessageEditEvent, MessageStateChangeEvent
 
 JSON_FORBIDDEN = dict(
     status=403,
@@ -214,6 +212,9 @@ class MessagesView(ApiView):
             created_by=request.user,
         )
 
+        event = MessageCreateEvent(message=message, author=message.author, text=data['message'])
+        event.save()
+
         return 200, message.as_dict()
 
 
@@ -227,7 +228,7 @@ class MessageView(ApiView):
             return 404, JSON_NOT_FOUND
 
         if message.is_deleted:
-            return 410, message.as_dict() # Gone
+            return 410, message.as_dict()  # Gone
 
         return 200, message.as_dict()
 
@@ -239,7 +240,7 @@ class MessageView(ApiView):
             return 404, JSON_NOT_FOUND
 
         try:
-            validate(data, 'state', 'message')
+            validate(data, 'state', 'message', 'author')
         except ValidationError as e:
             return 400, e.as_dict()
 
@@ -251,10 +252,21 @@ class MessageView(ApiView):
             return 400, dict(JSON_BAD_REQUEST, reason='invalid state')
 
         if message.state != new_state or message.message != data['message']:
+            # Do NOT update the visible message creator when editing, but store the current username in the edit log
+            events = []
+            if message.state != new_state:
+                events.append(MessageStateChangeEvent(message=message, author=data['author'],
+                                                      old_state=message.state, new_state=new_state))
+            if message.message != data['message']:
+                events.append(MessageEditEvent(message=message, author=data['author'], text=data['message']))
+
             message.updated_by = request.user
             message.state = new_state
             message.message = data['message']
             message.save()
+
+            for event in events:
+                event.save()
 
         return 200, message.as_dict()
 
@@ -268,6 +280,32 @@ class MessageView(ApiView):
         message.save()
 
         return 200, message.as_dict()
+
+
+class MessageEventsView(ApiView):
+    def _get(self, request, event, message_id):
+        message = Message.objects.filter(
+            event_slug=event.slug,
+            id=int(message_id)
+        ).prefetch_related(
+            "messagecreateevent_set",
+            "messagestatechangeevent_set",
+            "messageeditevent_set",
+            "messagecomment_set",
+            "messagedeleteevent_set"
+        ).first()
+
+        if not message:
+            return 404, JSON_NOT_FOUND
+
+        events = sorted(chain(
+            message.messagecreateevent_set.all(),
+            message.messagestatechangeevent_set.all(),
+            message.messageeditevent_set.all(),
+            message.messagecomment_set.all(),
+            message.messagedeleteevent_set.all()
+        ), key=lambda it: it.created_at, reverse=True)
+        return 200, [message_event.as_dict() for message_event in events]
 
 
 class ConfigView(ApiView):

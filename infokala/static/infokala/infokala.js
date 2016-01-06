@@ -42,8 +42,8 @@ config.messageTypesBySlug = _.indexBy(config.messageTypes, 'slug');
 
 
 
-},{"lodash":24}],3:[function(require,module,exports){
-var MainViewModel, _, config, deleteMessage, editMessage, getAllMessages, getMessagesSince, ko, ref, refreshMilliseconds, sendMessage, updateMessage,
+},{"lodash":25}],3:[function(require,module,exports){
+var MainViewModel, _, config, deleteMessage, getAllMessages, getMessageEvents, getMessagesSince, ko, ref, refreshMilliseconds, sendMessage, updateMessage,
   bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   slice = [].slice;
 
@@ -51,7 +51,7 @@ ko = require('knockout');
 
 _ = require('lodash');
 
-ref = require('./message_service.coffee'), getAllMessages = ref.getAllMessages, getMessagesSince = ref.getMessagesSince, sendMessage = ref.sendMessage, editMessage = ref.editMessage, updateMessage = ref.updateMessage, deleteMessage = ref.deleteMessage;
+ref = require('./message_service.coffee'), getAllMessages = ref.getAllMessages, getMessagesSince = ref.getMessagesSince, sendMessage = ref.sendMessage, getMessageEvents = ref.getMessageEvents, updateMessage = ref.updateMessage, deleteMessage = ref.deleteMessage;
 
 config = require('./config_service.coffee').config;
 
@@ -64,6 +64,9 @@ module.exports = MainViewModel = (function() {
     this.shouldShowMessageType = bind(this.shouldShowMessageType, this);
     this.filterChanged = bind(this.filterChanged, this);
     this.matchesFilter = bind(this.matchesFilter, this);
+    this.escapeHtml = bind(this.escapeHtml, this);
+    this.formatEvent = bind(this.formatEvent, this);
+    this.openMessage = bind(this.openMessage, this);
     this.deleteMessage = bind(this.deleteMessage, this);
     this.editMessage = bind(this.editMessage, this);
     this.cycleMessageState = bind(this.cycleMessageState, this);
@@ -78,6 +81,8 @@ module.exports = MainViewModel = (function() {
     this.messages = ko.observableArray([]);
     this.visibleMessages = ko.observableArray([]);
     this.editingMessage = ko.observable(null);
+    this.detailsMessage = ko.observable(null);
+    this.messageEventList = ko.observableArray([]);
     this.latestMessageTimestamp = null;
     this.user = ko.observable({
       displayName: "",
@@ -204,7 +209,8 @@ module.exports = MainViewModel = (function() {
   MainViewModel.prototype.sendEditMessage = function(id, message) {
     return updateMessage(id, {
       state: message.state.slug,
-      message: message.message
+      message: message.message,
+      author: this.author()
     }).then((function(_this) {
       return function(newMessage) {
         return _this.updateMessages([newMessage], false);
@@ -227,7 +233,8 @@ module.exports = MainViewModel = (function() {
     }
     return updateMessage(message.id, {
       message: message.message,
-      state: this.nextState(message).slug
+      state: this.nextState(message).slug,
+      author: this.author()
     }).then((function(_this) {
       return function(updatedMessage) {
         return _this.updateMessages([updatedMessage], false);
@@ -247,6 +254,74 @@ module.exports = MainViewModel = (function() {
         };
       })(this));
     }
+  };
+
+  MainViewModel.prototype.openMessage = function(message) {
+    return getMessageEvents(message.id).then((function(_this) {
+      return function(events) {
+        var e, formattedEvents;
+        formattedEvents = (function() {
+          var i, len, results;
+          results = [];
+          for (i = 0, len = events.length; i < len; i++) {
+            e = events[i];
+            results.push(this.formatEvent(e, message.messageType));
+          }
+          return results;
+        }).call(_this);
+        _this.messageEventList(formattedEvents);
+        return _this.detailsMessage(message.id);
+      };
+    })(this));
+  };
+
+  MainViewModel.prototype.formatEvent = function(event, messageType) {
+    var messageTypes, newLabel, newLabelHtml, oldLabel, oldLabelHtml, text;
+    if (event.type === "create") {
+      text = "Loi kohteen: " + this.escapeHtml(event.text);
+    } else if (event.type === "delete") {
+      text = "Poisti kohteen";
+    } else if (event.type === "comment") {
+      text = event.text;
+    } else if (event.type === "edit") {
+      text = "Muokkasi kohdetta: " + this.escapeHtml(event.text);
+    } else if (event.type === "statechange") {
+      messageTypes = messageType.workflow.statesBySlug;
+      oldLabel = messageTypes[event.oldState];
+      newLabel = messageTypes[event.newState];
+      if (oldLabel) {
+        oldLabelHtml = '<span class="label ' + oldLabel.labelClass + '">' + this.escapeHtml(oldLabel.name) + '</span>';
+      } else {
+        oldLabelHtml = 'tuntematon tila';
+      }
+      if (newLabel) {
+        newLabelHtml = '<span class="label ' + newLabel.labelClass + '">' + this.escapeHtml(newLabel.name) + '</span>';
+      } else {
+        newLabelHtml = 'tuntematon tila';
+      }
+      text = 'Vaihtoi kohteen tilan: ' + oldLabelHtml + ' &rArr; ' + newLabelHtml;
+    } else {
+      text = "?";
+    }
+    return {
+      time: event.formattedTime,
+      html: text,
+      classes: "infokala-event-" + event.type,
+      author: event.author
+    };
+  };
+
+  MainViewModel.prototype.escapeHtml = function(str) {
+    return String(str).replace(/[&<>"'\/]/g, function(s) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "/": '&#x2F;',
+        '"': '&quot;',
+        "'": '&#x27;'
+      }[s];
+    });
   };
 
   MainViewModel.prototype.matchesFilter = function(message) {
@@ -352,6 +427,14 @@ exports.updateMessage = function(messageId, update) {
 
 exports.deleteMessage = function(messageId) {
   return exports.deleteJSON("/" + messageId).then(enrichMessage);
+};
+
+exports.getMessageEvents = function(messageId) {
+  return exports.getJSON("/" + messageId + "/events");
+};
+
+exports.postComment = function(messageId, data) {
+  return exports.postJSON("/" + messageId + "/events", data);
 };
 
 enrichMessages = function(messages) {

@@ -29,6 +29,9 @@ exports.sendMessage = (message) -> exports.postJSON('/', message).then enrichMes
 exports.updateMessage = (messageId, update) -> exports.postJSON("/#{messageId}", update).then enrichMessage
 exports.deleteMessage = (messageId) -> exports.deleteJSON("/#{messageId}").then enrichMessage
 
+exports.getMessageEvents = (messageId) -> exports.getJSON("/#{messageId}/events")
+exports.postComment = (messageId, data) -> exports.postJSON("/#{messageId}/events", data)
+
 
 enrichMessages = (messages) ->
   messages.forEach enrichMessage

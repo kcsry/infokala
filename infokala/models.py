@@ -191,3 +191,80 @@ class Message(models.Model):
     def mark_deleted(self, by_user=None):
         self.deleted_by = by_user
         self.deleted_at = now()
+
+
+class MessageEventBase(models.Model):
+    """A MessageEventBase is either a state change event or a comment on a message."""
+    message = models.ForeignKey(Message, verbose_name=u'viesti', related_name='%(class)s_set')
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
+    author = models.CharField(verbose_name=u'muokkaaja', max_length=128)
+
+    def as_dict(self):
+        return dict(
+            createdAt=self.created_at.isoformat(),
+            formattedTime=self.formatted_time,
+            author=self.author
+        )
+
+    @property
+    def formatted_time(self):
+        return self.created_at.astimezone(TZLOCAL).time().strftime(TIME_FORMAT)
+
+    class Meta:
+        ordering = ['-created_at']
+        abstract = True
+
+
+class MessageStateChangeEvent(MessageEventBase):
+    old_state = models.ForeignKey(State, related_name='+')
+    new_state = models.ForeignKey(State, related_name='+')
+
+    def as_dict(self):
+        return dict(
+            MessageEventBase.as_dict(self),
+            type="statechange",
+            oldState=self.old_state.slug,
+            newState=self.new_state.slug
+        )
+
+
+class MessageEditEvent(MessageEventBase):
+    # text represents the new text of the message
+    text = models.TextField(verbose_name=u'viesti')
+
+    def as_dict(self):
+        return dict(
+            MessageEventBase.as_dict(self),
+            type="edit",
+            text=self.text
+        )
+
+
+class MessageComment(MessageEventBase):
+    comment = models.TextField(verbose_name=u'kommentti')
+
+    def as_dict(self):
+        return dict(
+            MessageEventBase.as_dict(self),
+            type="comment",
+            comment=self.comment
+        )
+
+
+class MessageCreateEvent(MessageEventBase):
+    text = models.TextField(verbose_name=u'viesti')
+
+    def as_dict(self):
+        return dict(
+            MessageEventBase.as_dict(self),
+            type="create",
+            text=self.text
+        )
+
+
+class MessageDeleteEvent(MessageEventBase):
+    def as_dict(self):
+        return dict(
+            MessageEventBase.as_dict(self),
+            type="delete"
+        )
