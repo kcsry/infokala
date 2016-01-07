@@ -21,7 +21,7 @@
 .infokala-inactive
   color #ccc
 
-.infokala-message-cycleable
+.infokala-message-cycleable, .infokala-message-text
   cursor pointer
   cursor hand
 
@@ -39,6 +39,7 @@
 
 .infokala-event-create, .infokala-event-delete, .infokala-event-statechange, .infokala-event-edit
   font-style italic
+  color #888
 
 @media screen
   .infokala-push-top

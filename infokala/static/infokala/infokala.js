@@ -43,7 +43,7 @@ config.messageTypesBySlug = _.indexBy(config.messageTypes, 'slug');
 
 
 },{"lodash":25}],3:[function(require,module,exports){
-var MainViewModel, _, config, deleteMessage, getAllMessages, getMessageEvents, getMessagesSince, ko, ref, refreshMilliseconds, sendMessage, updateMessage,
+var MainViewModel, _, config, deleteMessage, getAllMessages, getMessageEvents, getMessagesSince, ko, postComment, ref, refreshMilliseconds, sendMessage, updateMessage,
   bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   slice = [].slice;
 
@@ -51,7 +51,7 @@ ko = require('knockout');
 
 _ = require('lodash');
 
-ref = require('./message_service.coffee'), getAllMessages = ref.getAllMessages, getMessagesSince = ref.getMessagesSince, sendMessage = ref.sendMessage, getMessageEvents = ref.getMessageEvents, updateMessage = ref.updateMessage, deleteMessage = ref.deleteMessage;
+ref = require('./message_service.coffee'), getAllMessages = ref.getAllMessages, getMessagesSince = ref.getMessagesSince, sendMessage = ref.sendMessage, getMessageEvents = ref.getMessageEvents, postComment = ref.postComment, updateMessage = ref.updateMessage, deleteMessage = ref.deleteMessage;
 
 config = require('./config_service.coffee').config;
 
@@ -59,6 +59,7 @@ refreshMilliseconds = 5 * 1000;
 
 module.exports = MainViewModel = (function() {
   function MainViewModel() {
+    this.handleComment = bind(this.handleComment, this);
     this.handleEdit = bind(this.handleEdit, this);
     this.isMessageCycleable = bind(this.isMessageCycleable, this);
     this.shouldShowMessageType = bind(this.shouldShowMessageType, this);
@@ -83,6 +84,8 @@ module.exports = MainViewModel = (function() {
     this.editingMessage = ko.observable(null);
     this.detailsMessage = ko.observable(null);
     this.messageEventList = ko.observableArray([]);
+    this.newComment = ko.observable("");
+    this.commentPending = ko.observable(false);
     this.latestMessageTimestamp = null;
     this.user = ko.observable({
       displayName: "",
@@ -141,11 +144,14 @@ module.exports = MainViewModel = (function() {
         var existingMessage;
         existingMessage = _this.messagesById[updatedMessage.id];
         if (existingMessage) {
-          if (_this.editingMessage() !== updatedMessage.id) {
-            _this.messages.splice(existingMessage.index, 1, updatedMessage);
-            if (_this.matchesFilter(updatedMessage)) {
-              return _this.visibleMessages.splice(existingMessage.visibleIndex, 1, updatedMessage);
-            }
+          if (_this.editingMessage() === updatedMessage.id) {
+            window.jQuery('#infokala-message-' + _this.editingMessage()).find('.infokala-edit-field').focus();
+          } else if (_this.detailsMessage() === updatedMessage.id) {
+            window.jQuery('#infokala-message-' + _this.detailsMessage()).find('.infokala-comment-field').focus();
+          }
+          _this.messages.splice(existingMessage.index, 1, updatedMessage);
+          if (_this.matchesFilter(updatedMessage)) {
+            return _this.visibleMessages.splice(existingMessage.visibleIndex, 1, updatedMessage);
           }
         } else {
           _this.messages.push(updatedMessage);
@@ -257,6 +263,9 @@ module.exports = MainViewModel = (function() {
   };
 
   MainViewModel.prototype.openMessage = function(message) {
+    if (message.id === this.detailsMessage()) {
+      return this.detailsMessage(null);
+    }
     return getMessageEvents(message.id).then((function(_this) {
       return function(events) {
         var e, formattedEvents;
@@ -282,7 +291,7 @@ module.exports = MainViewModel = (function() {
     } else if (event.type === "delete") {
       text = "Poisti kohteen";
     } else if (event.type === "comment") {
-      text = event.text;
+      text = this.escapeHtml(event.comment);
     } else if (event.type === "edit") {
       text = "Muokkasi kohdetta: " + this.escapeHtml(event.text);
     } else if (event.type === "statechange") {
@@ -358,6 +367,19 @@ module.exports = MainViewModel = (function() {
     this.sendEditMessage(this.editingMessage(), messageObj).then((function(_this) {
       return function() {
         return _this.editingMessage(null);
+      };
+    })(this));
+  };
+
+  MainViewModel.prototype.handleComment = function() {
+    this.commentPending(true);
+    return postComment(this.detailsMessage(), {
+      "author": this.author(),
+      "comment": this.newComment()
+    }).then((function(_this) {
+      return function(evt) {
+        _this.newComment("");
+        return _this.messageEventList.unshift(_this.formatEvent(evt, _this.detailsMessage().messageType));
       };
     })(this));
   };

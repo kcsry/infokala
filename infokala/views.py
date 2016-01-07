@@ -9,7 +9,8 @@ from django.views.generic import View
 from dateutil.parser import parse as parse_datetime
 from itertools import chain
 
-from .models import Message, MessageType, Workflow, MessageCreateEvent, MessageEditEvent, MessageStateChangeEvent
+from .models import Message, MessageType, Workflow, MessageCreateEvent, MessageEditEvent, MessageStateChangeEvent, \
+    MessageComment
 
 JSON_FORBIDDEN = dict(
     status=403,
@@ -283,6 +284,8 @@ class MessageView(ApiView):
 
 
 class MessageEventsView(ApiView):
+    http_method_names = ['get', 'post']
+
     def _get(self, request, event, message_id):
         message = Message.objects.filter(
             event_slug=event.slug,
@@ -306,6 +309,22 @@ class MessageEventsView(ApiView):
             message.messagedeleteevent_set.all()
         ), key=lambda it: it.created_at, reverse=True)
         return 200, [message_event.as_dict() for message_event in events]
+
+    def _post(self, request, event, data, message_id):
+        message = Message.objects.filter(event_slug=event.slug, id=int(message_id)).first()
+
+        if not message:
+            return 404, JSON_NOT_FOUND
+
+        try:
+            validate(data, 'author', 'comment')
+        except ValidationError as e:
+            return 400, e.as_dict()
+
+        event = MessageComment(message=message, author=data['author'], comment=data['comment'])
+        event.save()
+
+        return 200, event.as_dict()
 
 
 class ConfigView(ApiView):

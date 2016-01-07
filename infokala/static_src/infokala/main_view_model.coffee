@@ -1,7 +1,7 @@
 ko = require 'knockout'
 _ = require 'lodash'
 
-{getAllMessages, getMessagesSince, sendMessage, getMessageEvents, updateMessage, deleteMessage} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, sendMessage, getMessageEvents, postComment, updateMessage, deleteMessage} = require './message_service.coffee'
 {config} = require './config_service.coffee'
 
 refreshMilliseconds = 5 * 1000
@@ -15,6 +15,8 @@ module.exports = class MainViewModel
 
     @detailsMessage = ko.observable null
     @messageEventList = ko.observableArray []
+    @newComment = ko.observable ""
+    @commentPending = ko.observable false
 
     @latestMessageTimestamp = null
     @user = ko.observable
@@ -67,9 +69,13 @@ module.exports = class MainViewModel
       existingMessage = @messagesById[updatedMessage.id]
 
       if existingMessage
-        if @editingMessage() != updatedMessage.id
-          @messages.splice existingMessage.index, 1, updatedMessage
-          @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
+        # TODO: This is a prime thing to make prettier when refactoring MessageView into its own model
+        if @editingMessage() == updatedMessage.id
+          window.jQuery('#infokala-message-' + @editingMessage()).find('.infokala-edit-field').focus()
+        else if @detailsMessage() == updatedMessage.id
+          window.jQuery('#infokala-message-' + @detailsMessage()).find('.infokala-comment-field').focus()
+        @messages.splice existingMessage.index, 1, updatedMessage
+        @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
       else
         @messages.push updatedMessage
         @visibleMessages.push updatedMessage if @matchesFilter updatedMessage
@@ -138,6 +144,8 @@ module.exports = class MainViewModel
         @updateMessages [deletedMessage], false
 
   openMessage: (message) =>
+    if message.id == @detailsMessage()
+      return @detailsMessage null
     getMessageEvents(message.id).then (events) =>
       formattedEvents = (@formatEvent(e, message.messageType) for e in events)
       @messageEventList formattedEvents
@@ -151,7 +159,7 @@ module.exports = class MainViewModel
       text = "Poisti kohteen"
 
     else if event.type == "comment"
-      text = event.text
+      text = @escapeHtml event.comment
 
     else if event.type == "edit"
       text = "Muokkasi kohdetta: " + @escapeHtml event.text
@@ -211,3 +219,9 @@ module.exports = class MainViewModel
     messageObj.isEditPending true
     @sendEditMessage(@editingMessage(), messageObj).then () => @editingMessage null
     return
+
+  handleComment: () =>
+    @commentPending true
+    postComment(@detailsMessage(), {"author": @author(), "comment": @newComment()}).then (evt) =>
+      @newComment ""
+      @messageEventList.unshift @formatEvent evt, @detailsMessage().messageType
