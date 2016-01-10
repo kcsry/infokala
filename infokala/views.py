@@ -239,7 +239,7 @@ class MessageView(ApiView):
             return 404, JSON_NOT_FOUND
 
         try:
-            validate(data, 'state')
+            validate(data, 'state', 'message')
         except ValidationError as e:
             return 400, e.as_dict()
 
@@ -250,9 +250,10 @@ class MessageView(ApiView):
         if not new_state:
             return 400, dict(JSON_BAD_REQUEST, reason='invalid state')
 
-        if message.state != new_state:
+        if message.state != new_state or message.message != data['message']:
             message.updated_by = request.user
             message.state = new_state
+            message.message = data['message']
             message.save()
 
         return 200, message.as_dict()

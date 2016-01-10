@@ -30,6 +30,9 @@
 .infokala-message-deleted {
   display: none;
 }
+.edit-pending {
+  font-style: italic;
+}
 @media screen {
   .infokala-push-top {
     margin-top: 65px;

@@ -40,11 +40,15 @@ html
               | &emsp;
               span.label.label-default(data-bind='visible: $parent.shouldShowMessageType(), text: messageType.name')
               | &emsp;
+              span.btn.btn-xs.btn-primary.infokala-edit-message-button(data-bind='click: $parent.editMessage, clickBubble: false') &#x270e;
+              | &emsp;
               span.btn.btn-xs.btn-danger.infokala-delete-message-button(data-bind='click: $parent.deleteMessage, clickBubble: false') &times;
             .small(data-bind='text: formattedTime')
         .row(data-bind='css: {"infokala-inactive": !state.active}')
           strong.col-md-1(data-bind='text: author')
-          .col-md-11(data-bind='text: message')
+          .col-md-11(data-bind='text: message, style: {"display": $parent.editingMessage() === id ? "none" : ""}, css: {"edit-pending": isEditPending}')
+          form.col-md-9(data-bind='submit: $parent.handleEdit', role='form')
+            input.form-control(type='text', data-bind='textInput: message, style: {"display": $parent.editingMessage() === id ? "" : "none"}, click: function(){}, clickBubble: false, event: {blur: $parent.handleEdit}')
 
     .container(style='display: none', data-bind='visible: true')
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')

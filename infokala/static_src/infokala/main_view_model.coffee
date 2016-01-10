@@ -1,7 +1,7 @@
 ko = require 'knockout'
 _ = require 'lodash'
 
-{getAllMessages, getMessagesSince, sendMessage, updateMessage, deleteMessage} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, sendMessage, editMessage, updateMessage, deleteMessage} = require './message_service.coffee'
 {config} = require './config_service.coffee'
 
 refreshMilliseconds = 5 * 1000
@@ -11,6 +11,7 @@ module.exports = class MainViewModel
     @config = config
     @messages = ko.observableArray []
     @visibleMessages = ko.observableArray []
+    @editingMessage = ko.observable null
 
     @latestMessageTimestamp = null
     @user = ko.observable
@@ -63,8 +64,9 @@ module.exports = class MainViewModel
       existingMessage = @messagesById[updatedMessage.id]
 
       if existingMessage
-        @messages.splice existingMessage.index, 1, updatedMessage
-        @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
+        if @editingMessage() != updatedMessage.id
+          @messages.splice existingMessage.index, 1, updatedMessage
+          @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
       else
         @messages.push updatedMessage
         @visibleMessages.push updatedMessage if @matchesFilter updatedMessage
@@ -99,7 +101,13 @@ module.exports = class MainViewModel
     ).then (newMessage) =>
       # clear the message field
       @message ""
+      @updateMessages [newMessage], false
 
+  sendEditMessage: (id, message) =>
+    updateMessage(
+      id,
+      {state: message.state.slug, message: message.message}
+    ).then (newMessage) =>
       @updateMessages [newMessage], false
 
   nextState: (message) =>
@@ -111,8 +119,14 @@ module.exports = class MainViewModel
   cycleMessageState: (message) =>
     return unless @isMessageCycleable message
 
-    updateMessage(message.id, state: @nextState(message).slug).then (updatedMessage) =>
+    updateMessage(message.id, {
+      message: message.message,
+      state: @nextState(message).slug
+    }).then (updatedMessage) =>
       @updateMessages [updatedMessage], false
+
+  editMessage: (message) =>
+    @editingMessage(if @editingMessage() == message.id then null else message.id)
 
   deleteMessage: (message) =>
     if window.confirm("Haluatko varmasti poistaa viestin?")
@@ -133,3 +147,9 @@ module.exports = class MainViewModel
   shouldShowMessageType: => !@activeFilter().slug
   isMessageCycleable: (message) =>
     message.messageType.workflow.states.length > 1
+
+  handleEdit: (message) =>
+    messageObj = _.filter(@visibleMessages(), (o) => o.id == @editingMessage())[0]
+    messageObj.isEditPending true
+    @sendEditMessage(@editingMessage(), messageObj).then () => @editingMessage null
+    return
