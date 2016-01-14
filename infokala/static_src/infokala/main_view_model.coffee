@@ -1,7 +1,7 @@
 ko = require 'knockout'
 _ = require 'lodash'
 
-{getAllMessages, getMessagesSince, sendMessage, editMessage, updateMessage, deleteMessage} = require './message_service.coffee'
+{getAllMessages, getMessagesSince, sendMessage, getMessageEvents, postComment, updateMessage, deleteMessage} = require './message_service.coffee'
 {config} = require './config_service.coffee'
 
 refreshMilliseconds = 5 * 1000
@@ -12,6 +12,11 @@ module.exports = class MainViewModel
     @messages = ko.observableArray []
     @visibleMessages = ko.observableArray []
     @editingMessage = ko.observable null
+
+    @detailsMessage = ko.observable null
+    @messageEventList = ko.observableArray []
+    @newComment = ko.observable ""
+    @commentPending = ko.observable false
 
     @latestMessageTimestamp = null
     @user = ko.observable
@@ -64,7 +69,7 @@ module.exports = class MainViewModel
       existingMessage = @messagesById[updatedMessage.id]
 
       if existingMessage
-        if @editingMessage() != updatedMessage.id
+        if @editingMessage() != updatedMessage.id and @detailsMessage() != updatedMessage.id
           @messages.splice existingMessage.index, 1, updatedMessage
           @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
       else
@@ -106,7 +111,7 @@ module.exports = class MainViewModel
   sendEditMessage: (id, message) =>
     updateMessage(
       id,
-      {state: message.state.slug, message: message.message}
+      {state: message.state.slug, message: message.message, author: @author()}
     ).then (newMessage) =>
       @updateMessages [newMessage], false
 
@@ -121,7 +126,8 @@ module.exports = class MainViewModel
 
     updateMessage(message.id, {
       message: message.message,
-      state: @nextState(message).slug
+      state: @nextState(message).slug,
+      author: @author()
     }).then (updatedMessage) =>
       @updateMessages [updatedMessage], false
 
@@ -132,6 +138,62 @@ module.exports = class MainViewModel
     if window.confirm("Haluatko varmasti poistaa viestin?")
       deleteMessage(message.id).then (deletedMessage) =>
         @updateMessages [deletedMessage], false
+
+  openMessage: (message) =>
+    if message.id == @detailsMessage()
+      return @detailsMessage null
+    getMessageEvents(message.id).then (events) =>
+      formattedEvents = (@formatEvent(e, message.messageType) for e in events)
+      @messageEventList formattedEvents
+      @detailsMessage message.id
+
+  formatEvent: (event, messageType) =>
+    if event.type == "create"
+      text = "Loi kohteen: " + @escapeHtml event.text
+
+    else if event.type == "delete"
+      text = "Poisti kohteen"
+
+    else if event.type == "comment"
+      text = @escapeHtml event.comment
+
+    else if event.type == "edit"
+      text = "Muokkasi kohdetta: " + @escapeHtml event.text
+
+    else if event.type == "statechange"
+      messageTypes = messageType.workflow.statesBySlug
+      oldLabel = messageTypes[event.oldState]
+      newLabel = messageTypes[event.newState]
+      if oldLabel
+        oldLabelHtml = '<span class="label ' + oldLabel.labelClass + '">' + @escapeHtml(oldLabel.name) + '</span>'
+      else
+        oldLabelHtml = 'tuntematon tila'
+      if newLabel
+        newLabelHtml = '<span class="label ' + newLabel.labelClass + '">' + @escapeHtml(newLabel.name) + '</span>'
+      else
+        newLabelHtml = 'tuntematon tila'
+      text = 'Vaihtoi kohteen tilan: ' + oldLabelHtml + ' &rArr; ' + newLabelHtml
+
+    else
+      text = "?"
+
+    {
+      time: event.formattedTime
+      html: text
+      classes: "infokala-event-" + event.type
+      author: event.author
+    }
+
+  escapeHtml: (str) =>
+    String(str).replace /[&<>"'\/]/g, (s) ->
+      {
+        "&": "&amp;"
+        "<": "&lt;"
+        ">": "&gt;"
+        "/": '&#x2F;'
+        '"': '&quot;'
+        "'": '&#x27;'
+      }[s]
 
   matchesFilter: (message) =>
     activeFilter = @activeFilter()
@@ -153,3 +215,9 @@ module.exports = class MainViewModel
     messageObj.isEditPending true
     @sendEditMessage(@editingMessage(), messageObj).then () => @editingMessage null
     return
+
+  handleComment: () =>
+    @commentPending true
+    postComment(@detailsMessage(), {"author": @author(), "comment": @newComment()}).then (evt) =>
+      @newComment ""
+      @messageEventList.unshift @formatEvent evt, @detailsMessage().messageType

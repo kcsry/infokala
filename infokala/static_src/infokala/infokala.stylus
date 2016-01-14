@@ -6,6 +6,8 @@
   &:hover
     background-color #f8f8f8
 
+.infokala-action-row
+  &:hover
     .infokala-next-state
       display inline
 
@@ -13,13 +15,16 @@
   padding-top 15px
   padding-bottom 15px
 
+.infokala-message-details
+  display none
+
 .infokala-author-col, .infokala-message-col-middle
   padding-right 0
 
 .infokala-inactive
   color #ccc
 
-.infokala-message-cycleable
+.infokala-message-cycleable, .infokala-message-text, .infokala-message-details, .infokala-message-history
   cursor pointer
   cursor hand
 
@@ -29,8 +34,15 @@
 .infokala-message-deleted
   display none
 
-.edit-pending
+.infokala-edit-pending
   font-style italic
+
+.infokala-timestamp
+  color silver
+
+.infokala-event-create, .infokala-event-delete, .infokala-event-statechange, .infokala-event-edit
+  font-style italic
+  color #888
 
 @media screen
   .infokala-push-top

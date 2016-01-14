@@ -6,7 +6,7 @@ from django.views.generic.base import RedirectView
 from django.contrib.staticfiles.views import serve
 from django.contrib.auth.decorators import login_required
 
-from infokala.views import MessagesView, MessageView, ConfigView
+from infokala.views import MessagesView, MessageView, ConfigView, MessageEventsView
 
 urlpatterns = patterns('',
     url(r'^$', RedirectView.as_view(url='/events/test/messages/', permanent=False)),
@@ -26,5 +26,9 @@ urlpatterns = patterns('',
     url(r'^api/v1/events/(?P<event_slug>[a-z0-9-]+)/messages/(?P<message_id>\d+)/?$',
         csrf_exempt(MessageView.as_view()),
         name='infokala_message_view',
+    ),
+    url(r'^api/v1/events/(?P<event_slug>[a-z0-9-]+)/messages/(?P<message_id>\d+)/events?$',
+        csrf_exempt(MessageEventsView.as_view()),
+        name='infokala_message_events_view',
     ),
 )
