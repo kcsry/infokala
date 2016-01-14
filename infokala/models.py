@@ -186,6 +186,7 @@ class Message(models.Model):
             deletedAt=self.deleted_at.isoformat() if self.deleted_at else None,
             state=self.state.slug,
             formattedTime=self.formatted_time,
+            commentAmount=self.messagecomment_set.count()
         )
 
     def mark_deleted(self, by_user=None):

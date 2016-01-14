@@ -29,16 +29,15 @@
     </div>
     <div class="infokala-push-top"></div>
     <div style="display: none" data-bind="visible: true, foreach: visibleMessages" class="container">
-      <div data-bind="attr: {id: &quot;infokala-message-&quot; + id}, css: { &quot;infokala-message-cycleable&quot;: $parent.isMessageCycleable($data), &quot;infokala-message-deleted&quot;: isDeleted }" class="infokala-message">
+      <div data-bind="attr: {id: &quot;infokala-message-&quot; + id}, css: {&quot;infokala-message-cycleable&quot;: $parent.isMessageCycleable($data), &quot;infokala-message-deleted&quot;: isDeleted, &quot;infokala-open&quot;: $parent.detailsMessage() === id}" class="infokala-message">
         <div data-bind="click: $parent.cycleMessageState" class="row infokala-action-row">
           <div class="col-md-12 text-muted">
-            <div class="pull-right"><span data-bind="visible: $parent.isMessageCycleable($data)"><span data-bind="text: state.name, css: state.labelClass" class="label"></span><span data-bind="with: $parent.nextState($data)" class="infokala-next-state"><span class="text-muted">&thinsp;&rArr;&thinsp;</span><span data-bind="text: name, css: labelClass" class="label"></span></span></span>&emsp;<span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default"></span>&emsp;<span data-bind="click: $parent.editMessage, clickBubble: false" class="btn btn-xs btn-primary infokala-edit-message-button">&#x270e;</span>&emsp;<span data-bind="click: $parent.deleteMessage, clickBubble: false" class="btn btn-xs btn-danger infokala-delete-message-button">&times;</span>
-            </div>
+            <div class="pull-right"><span data-bind="visible: $parent.isMessageCycleable($data)"><span data-bind="text: state.name, css: state.labelClass" class="label"></span><span data-bind="with: $parent.nextState($data)" class="infokala-next-state"><span class="text-muted">&thinsp;&rArr;&thinsp;</span><span data-bind="text: name, css: labelClass" class="label"></span></span></span>&emsp;<span data-bind="visible: $parent.shouldShowMessageType(), text: messageType.name" class="label label-default"></span>&emsp;<span data-bind="visible: commentAmount &gt; 0, click: $parent.openMessage" class="infokala-comments-button"><span data-bind="html: &quot;&amp;#x1f4ac; &quot; + parseInt(commentAmount, 10).toString()" class="btn btn-xs btn-info"></span>&emsp;</span><span data-bind="click: $parent.editMessage, clickBubble: false" class="btn btn-xs btn-primary infokala-edit-message-button">&#x270e;</span>&emsp;<span data-bind="click: $parent.deleteMessage, clickBubble: false" class="btn btn-xs btn-danger infokala-delete-message-button">&times;</span></div>
             <div data-bind="text: formattedTime" class="small"></div>
           </div>
         </div>
         <div data-bind="css: {&quot;infokala-inactive&quot;: !state.active}, click: $parent.openMessage" class="row infokala-message-text"><strong data-bind="text: author" class="col-md-1"></strong>
-          <div data-bind="text: message, visible: $parent.editingMessage() !== id, css: {&quot;infokala-edit-pending&quot;: isEditPending}" class="col-md-11"></div>
+          <div data-bind="text: message, visible: $parent.editingMessage() !== id, css: {&quot;infokala-edit-pending&quot;: isEditPending}" class="col-md-9"></div>
           <form data-bind="submit: $parent.handleEdit" role="form" class="col-md-9">
             <input type="text" data-bind="textInput: message, visible: $parent.editingMessage() === id, click: function(){}, clickBubble: false, event: {blur: $parent.handleEdit}" class="form-control infokala-edit-field">
           </form>

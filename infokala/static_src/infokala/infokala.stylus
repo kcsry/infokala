@@ -15,13 +15,16 @@
   padding-top 15px
   padding-bottom 15px
 
+.infokala-message-details
+  display none
+
 .infokala-author-col, .infokala-message-col-middle
   padding-right 0
 
 .infokala-inactive
   color #ccc
 
-.infokala-message-cycleable, .infokala-message-text
+.infokala-message-cycleable, .infokala-message-text, .infokala-message-details, .infokala-message-history
   cursor pointer
   cursor hand
 

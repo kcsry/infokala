@@ -144,14 +144,11 @@ module.exports = MainViewModel = (function() {
         var existingMessage;
         existingMessage = _this.messagesById[updatedMessage.id];
         if (existingMessage) {
-          if (_this.editingMessage() === updatedMessage.id) {
-            window.jQuery('#infokala-message-' + _this.editingMessage()).find('.infokala-edit-field').focus();
-          } else if (_this.detailsMessage() === updatedMessage.id) {
-            window.jQuery('#infokala-message-' + _this.detailsMessage()).find('.infokala-comment-field').focus();
-          }
-          _this.messages.splice(existingMessage.index, 1, updatedMessage);
-          if (_this.matchesFilter(updatedMessage)) {
-            return _this.visibleMessages.splice(existingMessage.visibleIndex, 1, updatedMessage);
+          if (_this.editingMessage() !== updatedMessage.id && _this.detailsMessage() !== updatedMessage.id) {
+            _this.messages.splice(existingMessage.index, 1, updatedMessage);
+            if (_this.matchesFilter(updatedMessage)) {
+              return _this.visibleMessages.splice(existingMessage.visibleIndex, 1, updatedMessage);
+            }
           }
         } else {
           _this.messages.push(updatedMessage);

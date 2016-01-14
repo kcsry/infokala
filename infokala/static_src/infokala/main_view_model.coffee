@@ -69,13 +69,9 @@ module.exports = class MainViewModel
       existingMessage = @messagesById[updatedMessage.id]
 
       if existingMessage
-        # TODO: This is a prime thing to make prettier when refactoring MessageView into its own model
-        if @editingMessage() == updatedMessage.id
-          window.jQuery('#infokala-message-' + @editingMessage()).find('.infokala-edit-field').focus()
-        else if @detailsMessage() == updatedMessage.id
-          window.jQuery('#infokala-message-' + @detailsMessage()).find('.infokala-comment-field').focus()
-        @messages.splice existingMessage.index, 1, updatedMessage
-        @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
+        if @editingMessage() != updatedMessage.id and @detailsMessage() != updatedMessage.id
+          @messages.splice existingMessage.index, 1, updatedMessage
+          @visibleMessages.splice existingMessage.visibleIndex, 1, updatedMessage if @matchesFilter updatedMessage
       else
         @messages.push updatedMessage
         @visibleMessages.push updatedMessage if @matchesFilter updatedMessage

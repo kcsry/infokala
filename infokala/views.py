@@ -223,7 +223,10 @@ class MessageView(ApiView):
     http_method_names = ['get', 'post', 'delete']
 
     def _get(self, request, event, message_id):
-        message = Message.objects.filter(event_slug=event.slug, id=int(message_id)).first()
+        message = Message.objects.filter(
+            event_slug=event.slug,
+            id=int(message_id)
+        ).first()
 
         if not message:
             return 404, JSON_NOT_FOUND
