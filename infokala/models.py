@@ -12,6 +12,13 @@ from dateutil.tz import tzlocal
 TIME_FORMAT = '%H:%M:%S'
 TZLOCAL = tzlocal()
 
+def formatted_time(dt):
+    try:
+        dt = dt.astimezone(TZLOCAL)
+    except ValueError as ve:  # TODO: fix me
+        dt = dt
+    return dt.time().strftime(TIME_FORMAT)
+
 
 class Workflow(models.Model):
     slug = models.CharField(verbose_name=u'tunniste', max_length=64, unique=True)
@@ -166,7 +173,7 @@ class Message(models.Model):
 
     @property
     def formatted_time(self):
-        return self.created_at.astimezone(TZLOCAL).time().strftime(TIME_FORMAT)
+        return formatted_time(self.created_at)
 
     def as_dict(self):
         return dict(
@@ -209,7 +216,7 @@ class MessageEventBase(models.Model):
 
     @property
     def formatted_time(self):
-        return self.created_at.astimezone(TZLOCAL).time().strftime(TIME_FORMAT)
+        return formatted_time(self.created_at)
 
     class Meta:
         ordering = ['-created_at']
