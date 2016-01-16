@@ -1,6 +1,6 @@
 {
   "name": "infokala",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Info log management system for Desucon and Tracon",
   "main": "index.js",
   "scripts": {
@@ -10,14 +10,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/japsu/infokala"
+    "url": "https://github.com/kcsry/infokala"
   },
   "author": "Santtu Pajukanta",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/japsu/infokala/issues"
+    "url": "https://github.com/kcsry/infokala/issues"
   },
-  "homepage": "https://github.com/japsu/infokala",
+  "homepage": "https://github.com/kcsry/infokala",
   "dependencies": {},
   "devDependencies": {
     "bootstrap": "^3.3.4",
