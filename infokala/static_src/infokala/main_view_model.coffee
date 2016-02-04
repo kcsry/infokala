@@ -46,15 +46,18 @@ module.exports = class MainViewModel
     ].concat config.messageTypes
 
     # Special objects used as special filters
-    @filterAll = {name: 'Kaikki', slug: null, fn: (m) => true}
-    @filterActive = {name: 'Aktiiviset', slug: null, fn: (m) => m.state().active}
+    @filterAll = {name: 'Kaikki', slug: '_all', fn: (m) => true}
+    @filterActive = {name: 'Aktiiviset', slug: '_active', fn: (m) => m.state().active}
     @messageStateSpecialFilters = ko.observable [@filterAll, @filterActive]
     @messageStateFilters = ko.observableArray []
 
-    # activeFilter stores the type slug and a state object, because the state object might be one of the special
-    # cases above and requires identity (not equality) matching
+    # activeFilter stores the type slug and state object we are matching against, possibly including some special cases
     @activeFilter = ko.observable type: null, state: @filterAll
     @activeFilter.subscribe @filterChanged
+
+    window.addEventListener('hashchange', () => @updateFilterFromHash window.location.hash)
+    if window.location.hash
+      @updateFilterFromHash window.location.hash
 
     @shouldShowNewMessageWarning = ko.pureComputed () =>
         filter = @activeFilter()
@@ -158,10 +161,15 @@ module.exports = class MainViewModel
     @activeFilter _.extend @activeFilter(), state: messageState
     @updateHashFromFilter()
     @activeFilter _.extend @activeFilter(), type: messageType.slug
+    filter = @activeFilter()
+    filter.type = messageType.slug
+    @activeFilter {type: messageType.slug, state: @filterAll}
     @updateFilterStates messageType
+    @updateHashFromFilter()
 
   setFilterState: (messageState) =>
     @activeFilter _.extend @activeFilter(), state: messageState
+    @updateHashFromFilter()
 
   shouldShowFilters: () =>
     # Show filters if we're showing all items or messages of a type with more than one state
