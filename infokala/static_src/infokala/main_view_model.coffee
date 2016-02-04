@@ -28,24 +28,37 @@ module.exports = class MainViewModel
     @effectiveMessageType = ko.pureComputed =>
       activeFilter = @activeFilter()
 
-      if activeFilter?.slug
-        activeFilter.slug
+      if activeFilter?.type
+        activeFilter.type
       else
         @manualMessageType()
 
     @logoutUrl = ko.observable ""
-    @activeFilter = ko.observable slug: null
 
     # Using ko.pureComputed on @messages would be O(n) on every new or changed message – suicide
     @messagesById = {}
     @messages.subscribe @messageUpdated, null, 'arrayChange'
     @visibleMessages.subscribe @visibleMessageUpdated, null, 'arrayChange'
-    @activeFilter.subscribe @filterChanged
 
     @messageTypeFilters = ko.observable [
       name: 'Kaikki'
       slug: null
     ].concat config.messageTypes
+
+    # Special objects used as special filters
+    @filterAll = {name: 'Kaikki', slug: null, fn: (m) => true}
+    @filterActive = {name: 'Aktiiviset', slug: null, fn: (m) => m.state().active}
+    @messageStateSpecialFilters = ko.observable [@filterAll, @filterActive]
+    @messageStateFilters = ko.observableArray []
+
+    # activeFilter stores the type slug and a state object, because the state object might be one of the special
+    # cases above and requires identity (not equality) matching
+    @activeFilter = ko.observable type: null, state: @filterAll
+    @activeFilter.subscribe @filterChanged
+
+    @shouldShowNewMessageWarning = ko.pureComputed () =>
+        filter = @activeFilter()
+        config.messageTypesBySlug[filter.type]?.workflow.states.indexOf(filter.state) > 0
 
     getAllMessages().then (messages) =>
       @updateMessages messages
@@ -81,6 +94,79 @@ module.exports = class MainViewModel
 
         window.scrollTo 0, document.body.scrollHeight
 
+  updateFilterFromHash: (hash) =>
+    [type, state] = hash.substring(1).split("/", 2)
+
+    # If there is a missing type, reset the filter
+    if not type
+      return @activeFilter {type: null, state: @filterAll}
+
+    # Only refresh the filter if it has changed
+    filter = @activeFilter()
+    activeType = if not filter.type then "_all" else filter.type
+    return unless type != activeType or state != filter.state.slug
+
+    # Filter type
+    typeObj = null
+    filter.type = null
+    if type != "_all" and type of config.messageTypesBySlug
+      typeObj = config.messageTypesBySlug[type]
+      filter.type = type
+
+    # Filter state
+    filter.state = @filterAll
+    if state
+      # Special state filters are always
+      if state.startsWith("_")
+        findIn = @messageStateSpecialFilters()
+      # Non-special state filters are allowed when type is non-special
+      else if filter.type
+        findIn = config.messageTypesBySlug[filter.type]?.workflow.states || []
+      found = _.find(findIn, (s) => s.slug == state)
+      if found
+        filter.state = found
+
+    @activeFilter filter
+    if typeObj
+      @updateFilterStates typeObj
+
+  updateHashFromFilter: () =>
+    filter = @activeFilter()
+    type = if filter.type == null then "_all" else filter.type
+    state = filter.state.slug
+    if type == state == "_all"
+      window.location.hash = ''
+    else if state == "_all"
+      window.location.hash = '#' + type
+    else
+      window.location.hash = '#' + type + "/" + state
+
+  updateFilterStates: (messageType) =>
+    if not messageType.slug or messageType.workflow.states.length < 2
+      return @messageStateFilters.removeAll()
+
+    @messageStateFilters.splice 0, @messageStateFilters().length, messageType.workflow.states...
+
+  setFilterType: (messageType) =>
+    @activeFilter _.extend @activeFilter(), type: messageType.slug
+    filter = @activeFilter()
+    filter.type = messageType.slug
+    @activeFilter {type: messageType.slug, state: @filterAll}
+    @updateFilterStates messageType
+
+  setFilterState: (messageState) =>
+    @activeFilter _.extend @activeFilter(), state: messageState
+    @updateHashFromFilter()
+    @activeFilter _.extend @activeFilter(), type: messageType.slug
+    @updateFilterStates messageType
+
+  setFilterState: (messageState) =>
+    @activeFilter _.extend @activeFilter(), state: messageState
+
+  shouldShowFilters: () =>
+    # Show filters if we're showing all items or messages of a type with more than one state
+    !@activeFilter().type || config.messageTypesBySlug[@activeFilter().type].workflow.states.length > 1
+
   visibleMessageUpdated: (changes) =>
     changes.forEach (change) =>
       return unless change.status == 'added'
@@ -110,4 +196,4 @@ module.exports = class MainViewModel
   filterChanged: (newFilter) =>
     @visibleMessages.splice 0, @visibleMessages().length, _.filter(@messages(), (m) => m.matchesFilter newFilter)...
 
-  shouldShowMessageType: => !@activeFilter().slug
+  shouldShowMessageType: () => !@activeFilter().type

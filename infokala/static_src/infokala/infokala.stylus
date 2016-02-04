@@ -1,3 +1,9 @@
+.infokala-filter-row
+  padding-bottom 0.5em
+  border-bottom 1px solid #eee
+  strong
+    line-height 2.0
+
 .infokala-message
   padding-bottom 0.5em
   padding-top 0.5em
@@ -43,6 +49,9 @@
 .infokala-event-create, .infokala-event-delete, .infokala-event-statechange, .infokala-event-edit
   font-style italic
   color #888
+
+.infokala-new-message-warning
+  margin-top 2px
 
 @media screen
   .infokala-push-top
