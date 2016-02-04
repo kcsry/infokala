@@ -28,48 +28,50 @@ html
     .infokala-push-top
 
     .container(style='display: none', data-bind='visible: true, foreach: visibleMessages')
-      .infokala-message(data-bind='attr: {id: "infokala-message-" + id}, css: {"infokala-message-cycleable": $parent.isMessageCycleable($data), "infokala-message-deleted": isDeleted, "infokala-open": $parent.detailsMessage() === id}')
-        .row.infokala-action-row(data-bind='click: $parent.cycleMessageState')
+      .infokala-message(data-bind='attr: {id: "infokala-message-" + id}, css: {"infokala-message-cycleable": isCycleable, "infokala-message-deleted": isDeleted, "infokala-open": isMessageOpen}')
+        .row.infokala-action-row
           .col-md-12.text-muted
             .pull-right
-              span(data-bind='visible: $parent.isMessageCycleable($data)')
-                span.label(data-bind='text: state.name, css: state.labelClass')
-                span.infokala-next-state(data-bind='with: $parent.nextState($data)')
+              span.infokala-state-switcher(data-bind='visible: isCycleable(), click: cycleMessageState')
+                span.label(data-bind='text: state().name, css: state().labelClass')
+                span.infokala-next-state(data-bind='with: nextState()')
                   span.text-muted &thinsp;&rArr;&thinsp;
                   span.label(data-bind='text: name, css: labelClass')
               | &emsp;
               span.label.label-default(data-bind='visible: $parent.shouldShowMessageType(), text: messageType.name')
               | &emsp;
-              span.infokala-comments-button(data-bind='visible: commentAmount > 0, click: $parent.openMessage')
-                span.btn.btn-xs.btn-info(data-bind='html: "&#x1f4ac; " + parseInt(commentAmount, 10).toString()')
+              span.infokala-comments-button(data-bind='visible: commentAmount() > 0, click: toggleOpen')
+                span.btn.btn-xs.btn-info(data-bind='html: "&#x1f4ac; " + commentAmount()')
                 | &emsp;
-              span.btn.btn-xs.btn-primary.infokala-edit-message-button(data-bind='click: $parent.editMessage, clickBubble: false') &#x270e;
+              span.btn.btn-xs.btn-primary.infokala-edit-message-button(data-bind='click: toggleEdit, clickBubble: false') &#x270e;
               | &emsp;
-              span.btn.btn-xs.btn-danger.infokala-delete-message-button(data-bind='click: $parent.deleteMessage, clickBubble: false') &times;
+              span.btn.btn-xs.btn-danger.infokala-delete-message-button(data-bind='click: deleteMessage, clickBubble: false') &times;
             .small(data-bind='text: formattedTime')
-        .row.infokala-message-text(data-bind='css: {"infokala-inactive": !state.active}, click: $parent.openMessage')
+
+        .row.infokala-message-text(data-bind='css: {"infokala-inactive": !state().active}, click: toggleOpen')
           strong.col-md-1(data-bind='text: author')
-          .col-md-9(data-bind='text: message, visible: $parent.editingMessage() !== id, css: {"infokala-edit-pending": isEditPending}')
-          form.col-md-9(data-bind='submit: $parent.handleEdit', role='form')
-            input.form-control.infokala-edit-field(type='text', data-bind='textInput: message, visible: $parent.editingMessage() === id, click: function(){}, clickBubble: false, event: {blur: $parent.handleEdit}')
-        .infokala-message-history(data-bind='visible: $parent.detailsMessage() === id, click: $parent.openMessage')
+          .col-md-9(data-bind='text: message, visible: !isEditingOpen(), css: {"infokala-edit-pending": isEditPending}')
+          form.col-md-9(data-bind='submit: handleEdit', role='form')
+            input.form-control.infokala-edit-field(type='text', data-bind='textInput: newText, visible: isEditingOpen, click: function(){}, clickBubble: false, event: {blur: handleEdit}')
+
+        .infokala-message-history(data-bind='visible: isMessageOpen, click: toggleOpen')
           .row
-            .col-md-1
-            .col-md-11.h5.infokala-history-header Kommentoi
-          .row
+            .col-md-12.h5.infokala-history-header Kommentoi
+          .row.infokala-comment-form
             .col-md-1
             .col-md-1.infokala-timestamp(data-bind='text: (new Date()).toLocaleTimeString("fi-FI").replace(/\\./g, ":")')
             .col-md-1(data-bind='text: $parent.author() + ":"')
-            form.col-md-8.infokala-comment-form(data-bind='submit: $parent.handleComment, disabled: $parent.commentPending, click: function(){}, clickBubble: false', role='form')
-              input.form-control.infokala-comment-field(type='text', data-bind='textInput: $parent.newComment')
+            form.col-md-8(data-bind='submit: handleComment, disabled: isCommentPending, click: function(){}, clickBubble: false', role='form')
+              input.form-control.infokala-comment-field(type='text', data-bind='textInput: newComment')
           .row
             .col-md-1
             .col-md-11.h5.infokala-history-header Historia
-          .row.infokala-message-event(data-bind='foreach: $parent.messageEventList')
-            .col-md-1
-            .col-md-1.infokala-timestamp(data-bind='text: time')
-            .col-md-1(data-bind='text: author + ":"')
-            .col-md-9(data-bind='html: html, css: classes')
+          .infokala-message-event-container(data-bind='foreach: eventList')
+            .row.infokala-message-event
+              .col-md-1
+              .col-md-1.infokala-timestamp(data-bind='text: time')
+              .col-md-1(data-bind='text: author + ":"')
+              .col-md-9(data-bind='html: html, css: classes')
 
     .container(style='display: none', data-bind='visible: true')
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')
