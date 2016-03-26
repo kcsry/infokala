@@ -90,6 +90,7 @@ class MessageType(models.Model):
     slug = models.CharField(verbose_name=u'tunniste', max_length=64)
     workflow = models.ForeignKey(Workflow, verbose_name=u'työnkulku', related_name='message_type_set')
     default = models.BooleanField(default=False, verbose_name=u'tapahtuman oletus')
+    color = models.CharField(verbose_name=u'väri', max_length=32, help_text=u'CSS:n hyväksymä värimääritys')
 
     class Meta:
         verbose_name = u'viestityyppi'
@@ -110,6 +111,7 @@ class MessageType(models.Model):
             name=self.name,
             slug=self.slug,
             workflow=self.workflow.slug,
+            color=self.color
         )
 
 

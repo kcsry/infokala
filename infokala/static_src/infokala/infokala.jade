@@ -39,10 +39,10 @@ html
               button.btn.btn-default(data-bind='text: name, click: $parent.setFilterState, css: { "btn-primary": $data === $parent.activeFilter().state }')
 
     .container(style='display: none', data-bind='visible: true, foreach: visibleMessages')
-      .infokala-message(data-bind='attr: {id: "infokala-message-" + id}, css: {"infokala-message-cycleable": isCycleable, "infokala-message-deleted": isDeleted, "infokala-open": isMessageOpen}')
+      div(data-bind='attr: {id: "infokala-message-" + id, "class": "infokala-message infokala-msgtype-" + messageType.slug}, css: {"infokala-message-cycleable": isCycleable, "infokala-message-deleted": isDeleted, "infokala-open": isMessageOpen}')
         .row.infokala-action-row
           .col-md-12.text-muted
-            .pull-right
+            .pull-right(data-bind='visible: isEditable')
               span.infokala-state-switcher(data-bind='visible: isCycleable(), click: cycleMessageState')
                 span.label(data-bind='text: state().name, css: state().labelClass')
                 span.infokala-next-state(data-bind='with: nextState()')
@@ -59,13 +59,13 @@ html
               span.btn.btn-xs.btn-danger.infokala-delete-message-button(data-bind='click: deleteMessage, clickBubble: false') &times;
             .small(data-bind='text: formattedTime')
 
-        .row.infokala-message-text(data-bind='css: {"infokala-inactive": !state().active}, click: toggleOpen')
-          strong.col-md-1(data-bind='text: author')
+        .row.infokala-message-text(data-bind='css: {"infokala-inactive": !state().active}, click: messageType.internal ? null : toggleOpen')
+          strong.col-md-1.infokala-decoration(data-bind='text: author')
           .col-md-9(data-bind='text: message, visible: !isEditingOpen(), css: {"infokala-edit-pending": isEditPending}')
           form.col-md-9(data-bind='submit: handleEdit', role='form')
             input.form-control.infokala-edit-field(type='text', data-bind='textInput: newText, visible: isEditingOpen, click: function(){}, clickBubble: false, event: {blur: handleEdit}')
 
-        .infokala-message-history(data-bind='visible: isMessageOpen, click: toggleOpen')
+        .infokala-message-history(data-bind='visible: isMessageOpen')
           .row
             .col-md-1
             .col-md-11.h5.infokala-history-header Kommentoi

@@ -2,6 +2,7 @@ ko = require 'knockout'
 _ = require 'lodash'
 
 {getMessageEvents, postComment, updateMessage, deleteMessage} = require './message_service.coffee'
+{escapeHtml} = require './utils.coffee'
 
 module.exports = class MessageViewModel
   constructor: (app, data) ->
@@ -51,6 +52,9 @@ module.exports = class MessageViewModel
     # The message ID: Immutable.
     @id = data.id || null
 
+    # Is editable: Immutable, should be used only for pseudo-events such as day changes
+    @isEditable =  if data.isEditable != undefined then data.isEditable else true
+
     # Computed properties
     # Is the message deleted: Mutable. (Can a message ever be undeleted?)
     @isDeleted = ko.observable data.isDeleted || false
@@ -87,33 +91,34 @@ module.exports = class MessageViewModel
 
   # Return whether or not the message state is cycleable, that is, if there's more than one state in the workflow.
   isCycleable: () =>
+    console.log @messageType
     @messageType.workflow.states.length > 1
 
 
   # Formats an event structure to a form with a human-readable text and presentation metadata
   formatEvent: (event, messageType) =>
     if event.type == "create"
-      text = "Loi kohteen: " + @escapeHtml event.text
+      text = "Loi kohteen: " + escapeHtml event.text
 
     else if event.type == "delete"
       text = "Poisti kohteen"
 
     else if event.type == "comment"
-      text = @escapeHtml event.comment
+      text = escapeHtml event.comment
 
     else if event.type == "edit"
-      text = "Muokkasi kohdetta: " + @escapeHtml event.text
+      text = "Muokkasi kohdetta: " + escapeHtml event.text
 
     else if event.type == "statechange"
       messageTypes = messageType.workflow.statesBySlug
       oldLabel = messageTypes[event.oldState]
       newLabel = messageTypes[event.newState]
       if oldLabel
-        oldLabelHtml = '<span class="label ' + oldLabel.labelClass + '">' + @escapeHtml(oldLabel.name) + '</span>'
+        oldLabelHtml = '<span class="label ' + oldLabel.labelClass + '">' + escapeHtml(oldLabel.name) + '</span>'
       else
         oldLabelHtml = 'tuntematon tila'
       if newLabel
-        newLabelHtml = '<span class="label ' + newLabel.labelClass + '">' + @escapeHtml(newLabel.name) + '</span>'
+        newLabelHtml = '<span class="label ' + newLabel.labelClass + '">' + escapeHtml(newLabel.name) + '</span>'
       else
         newLabelHtml = 'tuntematon tila'
       text = 'Vaihtoi kohteen tilan: ' + oldLabelHtml + ' &rArr; ' + newLabelHtml
@@ -133,10 +138,10 @@ module.exports = class MessageViewModel
   matchesFilter: (filter) =>
     typeMatches = true
     if filter.type
-      typeMatches = @messageType.slug == filter.type
-    stateMatches = true
+      typeMatches = @messageType.slug == filter.type || @messageType.internal  # Internal events are always shown
 
-    if filter.state
+    stateMatches = true
+    if filter.state and !@messageType.internal
       if 'fn' of filter.state and typeof filter.state.fn == 'function'
         stateMatches = filter.state.fn(this)
       else
@@ -212,19 +217,6 @@ module.exports = class MessageViewModel
       @newComment ""
       @isCommentPending false
       @eventList.unshift @formatEvent event, @messageType
-
-
-  # Utility: Escape HTML.
-  escapeHtml: (str) =>
-    String(str).replace /[&<>"'\/]/g, (s) ->
-      {
-        "&": "&amp;"
-        "<": "&lt;"
-        ">": "&gt;"
-        "/": '&#x2F;'
-        '"': '&quot;'
-        "'": '&#x27;'
-      }[s]
 
 
   # Update the message with new data.
