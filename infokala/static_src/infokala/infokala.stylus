@@ -6,7 +6,7 @@
   &:hover
     background-color #f8f8f8
 
-.infokala-action-row
+.infokala-state-switcher
   &:hover
     .infokala-next-state
       display inline
@@ -50,4 +50,7 @@
 
 @media print
   .infokala-message-form
+    display none
+
+  .infokala-comment-form
     display none

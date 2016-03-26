@@ -1,6 +1,4 @@
 _ = require 'lodash'
-Promise = require 'bluebird'
-ko = require 'knockout'
 
 {config} = require './config_service.coffee'
 
@@ -8,10 +6,8 @@ ko = require 'knockout'
 exports.getJSON = (path) ->
   fetch(config.apiUrl + path, credentials: 'same-origin').then (response) -> response.json()
 
-
 exports.deleteJSON = (path) ->
   fetch(config.apiUrl + path, method: 'delete', credentials: 'same-origin').then (response) -> response.json()
-
 
 exports.postJSON = (path, obj) ->
   fetch(config.apiUrl + path,
@@ -34,15 +30,10 @@ exports.postComment = (messageId, data) -> exports.postJSON("/#{messageId}/event
 
 
 enrichMessages = (messages) ->
-  messages.forEach enrichMessage
-  messages
-
+  _.map messages, enrichMessage
 
 enrichMessage = (message) ->
-  # unpack denormalized attributes
   messageType = config.messageTypesBySlug[message.messageType]
-
   _.extend message,
     messageType: messageType
     state: messageType.workflow.statesBySlug[message.state]
-    isEditPending: ko.observable false
