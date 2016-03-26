@@ -8,6 +8,7 @@ html
     meta(name="viewport", content="width=device-width, initial-scale=1")
     script(defer, src='config.js')
     script(defer, src='/static/infokala/infokala.js')
+
   body
     .navbar.navbar-default.navbar-fixed-top
       .container
@@ -15,8 +16,8 @@ html
           a.navbar-brand(href) Infokala
         .collapse.navbar-collapse#base-navbar-collapse(style='display: none', data-bind='visible: true')
           ul.nav.navbar-nav(data-bind='foreach: messageTypeFilters')
-            li(data-bind='css: { active: slug === $parent.activeFilter().slug }')
-              a(href, data-bind='text: name, click: $parent.activeFilter')
+            li(data-bind='css: { active: slug === $parent.activeFilter().type }')
+              a(href, data-bind='text: name, click: $parent.setFilterType')
           ul.nav.navbar-nav.navbar-right
             li.dropdown
               a.dropdown-toggle(href, data-toggle='dropdown')
@@ -26,6 +27,16 @@ html
                 li: a(href, data-bind='attr: { href: config.logoutUrl }') Kirjaudu ulos
 
     .infokala-push-top
+
+    .container(style='display: none', data-bind='visible: shouldShowFilters()')
+      .infokala-filter-row
+        .row
+          strong.col-md-1 Suodata
+          .col-md-11.btn-toolbar
+            .btn-group.btn-group-sm(data-bind='foreach: messageStateSpecialFilters')
+              button.btn.btn-default(data-bind='text: name, click: $parent.setFilterState, css: { "btn-primary": $data === $parent.activeFilter().state }')
+            .btn-group.btn-group-sm(data-bind='foreach: messageStateFilters')
+              button.btn.btn-default(data-bind='text: name, click: $parent.setFilterState, css: { "btn-primary": $data === $parent.activeFilter().state }')
 
     .container(style='display: none', data-bind='visible: true, foreach: visibleMessages')
       .infokala-message(data-bind='attr: {id: "infokala-message-" + id}, css: {"infokala-message-cycleable": isCycleable, "infokala-message-deleted": isDeleted, "infokala-open": isMessageOpen}')
@@ -56,7 +67,8 @@ html
 
         .infokala-message-history(data-bind='visible: isMessageOpen, click: toggleOpen')
           .row
-            .col-md-12.h5.infokala-history-header Kommentoi
+            .col-md-1
+            .col-md-11.h5.infokala-history-header Kommentoi
           .row.infokala-comment-form
             .col-md-1
             .col-md-1.infokala-timestamp(data-bind='text: (new Date()).toLocaleTimeString("fi-FI").replace(/\\./g, ":")')
@@ -83,3 +95,6 @@ html
           .col-md-2.infokala-message-type-col(data-bind='visible: shouldShowMessageType()')
             select.form-control(data-bind='options: config.messageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
         input.hidden(type='submit')
+        .row.infokala-new-message-warning(data-bind='visible: shouldShowNewMessageWarning')
+          .col-md-1
+          .col-md-11.text-muted Huomaathan, että uusi viestisi ei näy nykyisillä suodatinasetuksilla.

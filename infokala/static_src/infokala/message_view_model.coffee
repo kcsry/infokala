@@ -131,10 +131,18 @@ module.exports = class MessageViewModel
 
   # Does the message match the filter? Currently only slug filtering is supported.
   matchesFilter: (filter) =>
-    if filter.slug
-      @messageType.slug == filter.slug
-    else
-      true
+    typeMatches = true
+    if filter.type
+      typeMatches = @messageType.slug == filter.type
+    stateMatches = true
+
+    if filter.state
+      if 'fn' of filter.state and typeof filter.state.fn == 'function'
+        stateMatches = filter.state.fn(this)
+      else
+        stateMatches = @state().slug == filter.state.slug
+
+    typeMatches and stateMatches
 
 
   # Change the message state to the next possible one according to the workflow. No-op is !isCycleable.

@@ -1,5 +1,6 @@
 import os
 
+
 def mkpath(*parts):
     return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', *parts))
 
@@ -8,7 +9,6 @@ BASE_DIR = mkpath()
 SECRET_KEY = '6g*1v8@jh5dohgl6%n+9l9%k9g3__9#5@7bptzawuis-4*git#'
 
 DEBUG = True
-TEMPLATE_DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -55,6 +55,19 @@ STATIC_URL = '/static/'
 STATIC_ROOT = mkpath('static')
 
 LOGIN_URL = '/admin/login/'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': ['django.contrib.auth.context_processors.auth'],
+            'debug': DEBUG
+        },
+    },
+]
+
 
 def get_event(slug):
     from django.shortcuts import get_object_or_404
