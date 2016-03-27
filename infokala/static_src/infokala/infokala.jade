@@ -61,7 +61,7 @@ html
 
         .row.infokala-message-text(data-bind='css: {"infokala-inactive": !state().active}, click: messageType.internal ? null : toggleOpen')
           strong.col-md-1.infokala-decoration(data-bind='text: author')
-          .col-md-9(data-bind='text: message, visible: !isEditingOpen(), css: {"infokala-edit-pending": isEditPending}')
+          .col-md-9(data-bind='html: displayMessage, visible: !isEditingOpen(), css: {"infokala-edit-pending": isEditPending}')
           form.col-md-9(data-bind='submit: handleEdit', role='form')
             input.form-control.infokala-edit-field(type='text', data-bind='textInput: newText, visible: isEditingOpen, click: function(){}, clickBubble: false, event: {blur: handleEdit}')
 

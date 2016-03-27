@@ -1,5 +1,6 @@
 ko = require 'knockout'
 _ = require 'lodash'
+linkify = require 'linkifyjs/html'
 
 {getMessageEvents, postComment, updateMessage, deleteMessage} = require './message_service.coffee'
 {escapeHtml} = require './utils.coffee'
@@ -49,6 +50,9 @@ module.exports = class MessageViewModel
     # The actual text content of the message: Mutable.
     @message = ko.observable data.message || ""
 
+    # HTML version with URLs linkified in the message: Mutable, computed.
+    @displayMessage = ko.pureComputed @getDisplayMessage
+
     # The message ID: Immutable.
     @id = data.id || null
 
@@ -81,6 +85,11 @@ module.exports = class MessageViewModel
     @isMessageOpen = ko.observable false
 
 
+  # Get the display message with URLs linkified
+  getDisplayMessage: =>
+    linkify escapeHtml @message()
+
+
   # Return the next state of the message according to the workflow
   nextState: =>
     # A, B, C -> A, B, C, A, B, C, ...
@@ -91,7 +100,6 @@ module.exports = class MessageViewModel
 
   # Return whether or not the message state is cycleable, that is, if there's more than one state in the workflow.
   isCycleable: () =>
-    console.log @messageType
     @messageType.workflow.states.length > 1
 
 
@@ -165,7 +173,7 @@ module.exports = class MessageViewModel
 
 
   # Toggle the editing state of the message.
-  toggleEdit: (message) =>
+  toggleEdit: () =>
     if @isEditingOpen()
       return @isEditingOpen false
     @newText @message()
@@ -173,17 +181,20 @@ module.exports = class MessageViewModel
 
 
   # Confirm and delete the message.
-  deleteMessage: (message) =>
+  deleteMessage: () =>
     if window.confirm("Haluatko varmasti poistaa viestin?")
-      deleteMessage(message.id).then (data) =>
+      deleteMessage(@id).then (data) =>
         @updateWith data
 
 
   # Toggle the message history/comments visibility.
-  toggleOpen: (message) =>
+  toggleOpen: (..., evt) =>
+    # Knockout causes some interesting event handling to happen, so kludge it a bit
+    if evt.target.tagName == "A"
+      return true
+
     if @isMessageOpen()
       return @isMessageOpen false
-
     @updateEvents().then () => @isMessageOpen true
 
 
