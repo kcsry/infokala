@@ -7,10 +7,14 @@
 .infokala-message
   padding-bottom 0.5em
   padding-top 0.5em
+  padding-left 4px
   border-bottom 1px solid #eee
 
   &:hover
     background-color #f8f8f8
+
+.infokala-msgtype-_internal
+  background-color #f4f4f4
 
 .infokala-state-switcher
   &:hover

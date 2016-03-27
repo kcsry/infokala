@@ -2,8 +2,12 @@ ko = require 'knockout'
 _ = require 'lodash'
 
 {getAllMessages, getMessagesSince, sendMessage} = require './message_service.coffee'
-{config} = require './config_service.coffee'
+{enrichConfiguration, getDayChangeMessage} = require './internal_messages.coffee'
 MessageViewModel = require './message_view_model.coffee'
+{getDayStart} = require './utils.coffee'
+
+{config} = require './config_service.coffee'
+enrichConfiguration(config)
 
 refreshMilliseconds = 5 * 1000
 
@@ -12,6 +16,16 @@ module.exports = class MainViewModel
     @config = config
     @messages = ko.observableArray []
     @visibleMessages = ko.observableArray []
+
+    # Generate stylesheet for message types
+    styleText = _.map(
+      config.messageTypesBySlug,
+      (v, k) => '.infokala-msgtype-' + k + ' { border-left: 6px solid ' + v.color + ' }'
+    ).join("\n")
+
+    styleSheet = document.createElement 'style'
+    styleSheet.textContent = styleText
+    document.body.appendChild styleSheet
 
     @latestMessageTimestamp = null
     @user = ko.observable
@@ -43,7 +57,7 @@ module.exports = class MainViewModel
     @messageTypeFilters = ko.observable [
       name: 'Kaikki'
       slug: null
-    ].concat config.messageTypes
+    ].concat _.filter config.messageTypes, (mt) => !mt.internal
 
     # Special objects used as special filters
     @filterAll = {name: 'Kaikki', slug: '_all', fn: (m) => true}
@@ -80,7 +94,25 @@ module.exports = class MainViewModel
     else
       getAllMessages().then @updateMessages
 
+  addDayChangeMessages: () =>
+    newVisible = []
+    oldVisible = @visibleMessages()
+
+    last = null
+    for i of oldVisible
+      msg = oldVisible[i]
+      if msg.internal
+        continue
+      if (last == null) or (last and getDayStart(last.updatedAt()).getTime() != getDayStart(msg.updatedAt()).getTime())
+        newVisible.push getDayChangeMessage msg.updatedAt()
+      newVisible.push msg
+      last = msg
+
+    @visibleMessages.splice 0, @visibleMessages().length, newVisible...
+
   updateMessages: (updatedMessages, updateLatestMessageTimestamp=true) =>
+    newMessages = false
+
     updatedMessages.forEach (messageData) =>
       existingMessage = @messagesById[messageData.id]
 
@@ -89,13 +121,19 @@ module.exports = class MainViewModel
       else
         msg = new MessageViewModel this, messageData
         @messages.push msg
-        @visibleMessages.push msg if msg.matchesFilter @activeFilter()
+        newMessages = true
+
+        if msg.matchesFilter @activeFilter()
+          @visibleMessages.push msg
 
         if updateLatestMessageTimestamp
           if !@latestMessageTimestamp or msg.updatedAt() > @latestMessageTimestamp
             @latestMessageTimestamp = msg.updatedAt()
 
         window.scrollTo 0, document.body.scrollHeight
+
+    if newMessages
+      @addDayChangeMessages()
 
   updateFilterFromHash: (hash) =>
     [type, state] = hash.substring(1).split("/", 2)
@@ -203,5 +241,6 @@ module.exports = class MainViewModel
 
   filterChanged: (newFilter) =>
     @visibleMessages.splice 0, @visibleMessages().length, _.filter(@messages(), (m) => m.matchesFilter newFilter)...
+    @addDayChangeMessages()
 
   shouldShowMessageType: () => !@activeFilter().type
