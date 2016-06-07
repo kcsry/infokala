@@ -93,7 +93,7 @@ html
           .infokala-message-col(data-bind='css: { "col-md-9": shouldShowMessageType(), "col-md-11": !shouldShowMessageType(), "infokala-message-col-middle": shouldShowMessageType() }')
             input.form-control(data-bind='value: message', placeholder='Viesti...')
           .col-md-2.infokala-message-type-col(data-bind='visible: shouldShowMessageType()')
-            select.form-control(data-bind='options: config.messageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
+            select.form-control(data-bind='options: visibleMessageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
         input.hidden(type='submit')
         .row.infokala-new-message-warning(data-bind='visible: shouldShowNewMessageWarning')
           .col-md-1

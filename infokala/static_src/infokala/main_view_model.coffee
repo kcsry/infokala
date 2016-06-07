@@ -17,6 +17,10 @@ module.exports = class MainViewModel
     @messages = ko.observableArray []
     @visibleMessages = ko.observableArray []
 
+    # Exclude internal message types starting with an underscore
+    # An underscore is not valid in a message type slug, so this should never hit legitimate message types
+    @visibleMessageTypes = _.filter(config.messageTypes, (c) => !c.slug.startsWith('_'))
+
     # Generate stylesheet for message types
     styleText = _.map(
       config.messageTypesBySlug,
@@ -101,7 +105,7 @@ module.exports = class MainViewModel
     last = null
     for i of oldVisible
       msg = oldVisible[i]
-      if msg.internal
+      if msg.messageType.internal
         continue
       if (last == null) or (last and getDayStart(last.updatedAt()).getTime() != getDayStart(msg.updatedAt()).getTime())
         newVisible.push getDayChangeMessage msg.updatedAt()
@@ -194,6 +198,7 @@ module.exports = class MainViewModel
     filter.type = messageType.slug
     @activeFilter {type: messageType.slug, state: @filterAll}
     @updateFilterStates messageType
+    @updateHashFromFilter()
 
   setFilterState: (messageState) =>
     @activeFilter _.extend @activeFilter(), state: messageState
