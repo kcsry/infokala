@@ -13,6 +13,7 @@ build/
 dist/
 htmlcov
 infokala/static/infokala/infokala.*
+infokala/static/infokala/vendor.*
 node_modules/
 nohup.out
 pip-log.txt
