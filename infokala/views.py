@@ -1,9 +1,12 @@
+from __future__ import unicode_literals
 import json
 import logging
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
+from django.utils import six
+from django.utils.encoding import force_text
 from django.views.generic import View
 
 from dateutil.parser import parse as parse_datetime
@@ -32,6 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 class ValidationError(ValueError):
+    msg_template = '{}'
+
     def __init__(self, *args):
         super(ValidationError, self).__init__(*args)
         self.msg = self.msg_template.format(args)
@@ -94,7 +99,7 @@ def validate(data_dict, *field_names):
     if missing_keys:
         raise RequiredFieldsMissing(*missing_keys)
 
-    type_mismatches = [key for (key, value) in data_dict.iteritems() if not isinstance(value, basestring)]
+    type_mismatches = [key for (key, value) in six.iteritems(data_dict) if not isinstance(value, six.text_type)]
     if type_mismatches:
         raise FieldTypeMismatch(*type_mismatches)
 
@@ -137,7 +142,7 @@ class ApiView(View):
             )
 
         try:
-            data = json.loads(request.body)
+            data = json.loads(force_text(request.body))
         except ValueError:
             return HttpResponse(
                 json.dumps(dict(JSON_BAD_REQUEST, reason='document body is not valid JSON')),
