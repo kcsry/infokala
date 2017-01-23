@@ -1,15 +1,17 @@
 # encoding: utf-8
+from django.contrib.auth import get_user_model
+from django.core.management.base import BaseCommand
 
-from django.core.management.base import BaseCommand, CommandError
+from infokala.seeding import create_default_workflows, create_default_message_types
+
+from infokala_test_app.models import Event
+from infokala.models import MessageType, Message
 
 
 class Command(BaseCommand):
     def handle(self, *args, **opts):
-        from infokala_test_app.models import Event
-        from infokala.models import Workflow, State, MessageType, Message
-        from django.contrib.auth.models import User
 
-        user, created = User.objects.get_or_create(
+        user, created = get_user_model().objects.get_or_create(
             username='mahti',
             is_superuser=True,
             is_staff=True,
@@ -25,73 +27,11 @@ class Command(BaseCommand):
             )
         )
 
-        basic_workflow, unused = Workflow.objects.get_or_create(
-            slug=u'basic',
-            defaults=dict(
-                name=u'Perustyönkulku',
-            ),
-        )
-
-        lost_and_found_workflow, unused = Workflow.objects.get_or_create(
-            slug=u'lost-and-found',
-            defaults=dict(
-                name=u'Löytötavaratyönkulku',
-            ),
-        )
-
-        simple_workflow, unused = Workflow.objects.get_or_create(
-            slug=u'simple',
-            defaults=dict(
-                name=u'Yksinkertainen työnkulku',
-            ),
-        )
-
-        order = 0
-        for workflow, name, slug, initial, label_class, active in [
-            (basic_workflow, u'Avoinna', 'open', True, 'label-primary', True),
-            (basic_workflow, u'Hoidettu', 'resolved', False, 'label-success', False),
-
-            (lost_and_found_workflow, u'Kateissa', 'missing', True, 'label-primary', True),
-            (lost_and_found_workflow, u'Tuotu Infoon', 'found', False, 'label-info', True),
-            (lost_and_found_workflow, u'Palautettu omistajalle', 'returned', False, 'label-success', False),
-
-            (simple_workflow, u'Kirjattu', 'recorded', True, 'label-primary', True),
-        ]:
-            state, created = State.objects.get_or_create(
-                workflow=workflow,
-                slug=slug,
-                defaults=dict(
-                    name=name,
-                    order=order,
-                    initial=initial,
-                ),
-            )
-
-            state.label_class = label_class
-            state.active = active
-            state.save()
-
-            order += 10
-
-        for name, slug, workflow in [
-            (u'Löytötavarat', 'lost-and-found', lost_and_found_workflow),
-            (u'Tehtävä', 'task', basic_workflow),
-            (u'Lokikirja', 'event', simple_workflow),
-        ]:
-            message_type, unused = MessageType.objects.get_or_create(
-                event_slug=event.slug,
-                slug=slug,
-                defaults=dict(
-                    name=name,
-                    workflow=workflow,
-                ),
-            )
-
-        # make 'event' default
-        message_type.default = True
-        message_type.save()
+        workflows = create_default_workflows()
+        create_default_message_types(event, workflows)
 
         if not Message.objects.exists():
+            message_type = MessageType.objects.get(event_slug=event.slug, slug='event')
             for author, example_message in [
                 (u'Korppu', u'INFOSSA ON CORGI :333333'),
                 (u'Japsu', u'apua, tuun sinne :3'),
