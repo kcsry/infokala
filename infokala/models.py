@@ -9,9 +9,9 @@ from django.utils.timezone import now
 
 from dateutil.tz import tzlocal
 
-
 TIME_FORMAT = '%H:%M:%S'
 TZLOCAL = tzlocal()
+
 
 def formatted_time(dt):
     try:
@@ -126,19 +126,22 @@ class Message(models.Model):
 
     state = models.ForeignKey(State)
 
-    created_by = models.ForeignKey('auth.User',
+    created_by = models.ForeignKey(
+        'auth.User',
         verbose_name='lisääjä',
         null=True,
         blank=True,
         related_name='+',
     )
-    updated_by = models.ForeignKey('auth.User',
+    updated_by = models.ForeignKey(
+        'auth.User',
         verbose_name='viimeisin muokkaaja',
         null=True,
         blank=True,
         related_name='+',
     )
-    deleted_by = models.ForeignKey('auth.User',
+    deleted_by = models.ForeignKey(
+        'auth.User',
         verbose_name='poistaja',
         null=True,
         blank=True,
