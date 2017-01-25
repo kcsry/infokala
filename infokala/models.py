@@ -1,16 +1,18 @@
 # encoding: utf-8
+from __future__ import unicode_literals
 
 from warnings import warn
 
 from django.conf import settings
 from django.db import models
+from django.utils.six import python_2_unicode_compatible
 from django.utils.timezone import now
 
 from dateutil.tz import tzlocal
 
-
 TIME_FORMAT = '%H:%M:%S'
 TZLOCAL = tzlocal()
+
 
 def formatted_time(dt):
     try:
@@ -20,15 +22,16 @@ def formatted_time(dt):
     return dt.time().strftime(TIME_FORMAT)
 
 
+@python_2_unicode_compatible
 class Workflow(models.Model):
-    slug = models.CharField(verbose_name=u'tunniste', max_length=64, unique=True)
-    name = models.CharField(verbose_name=u'nimi', max_length=128)
+    slug = models.CharField(verbose_name='tunniste', max_length=64, unique=True)
+    name = models.CharField(verbose_name='nimi', max_length=128)
 
     class Meta:
-        verbose_name = u'työnkulku'
-        verbose_name_plural = u'työnkulut'
+        verbose_name = 'työnkulku'
+        verbose_name_plural = 'työnkulut'
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     @property
@@ -36,7 +39,7 @@ class Workflow(models.Model):
         try:
             return self.state_set.get(initial=True)
         except (State.DoesNotExist, State.MultipleObjectsReturned):
-            warn(u'Workflow "{name}" does not have a unique initial state'.format(name=self.name))
+            warn('Workflow "{name}" does not have a unique initial state'.format(name=self.name))
             return self.state_set.order_by('order').first()
 
     def as_dict(self):
@@ -48,22 +51,23 @@ class Workflow(models.Model):
         )
 
 
+@python_2_unicode_compatible
 class State(models.Model):
-    workflow = models.ForeignKey(Workflow, verbose_name=u'työnkulku', related_name='state_set')
-    order = models.IntegerField(default=0, verbose_name=u'järjestys')
-    name = models.CharField(verbose_name=u'nimi', max_length=128)
-    slug = models.CharField(verbose_name=u'tunniste', max_length=64)
-    active = models.BooleanField(default=True, verbose_name=u'aktiivinen')
-    label_class = models.CharField(verbose_name=u'label-luokka', max_length=32, blank=True, default='')
+    workflow = models.ForeignKey(Workflow, verbose_name='työnkulku', related_name='state_set')
+    order = models.IntegerField(default=0, verbose_name='järjestys')
+    name = models.CharField(verbose_name='nimi', max_length=128)
+    slug = models.CharField(verbose_name='tunniste', max_length=64)
+    active = models.BooleanField(default=True, verbose_name='aktiivinen')
+    label_class = models.CharField(verbose_name='label-luokka', max_length=32, blank=True, default='')
     initial = models.BooleanField(
-        verbose_name=u'alkutila',
-        help_text=u'Tämä tila asetetaan uuden viestin tilaksi. Valitse kussakin työnkulussa tasan yksi tila alkutilaksi.',
+        verbose_name='alkutila',
+        help_text='Tämä tila asetetaan uuden viestin tilaksi. Valitse kussakin työnkulussa tasan yksi tila alkutilaksi.',
         default=False
     )
 
     class Meta:
-        verbose_name = u'Tila'
-        verbose_name_plural = u'Tilat'
+        verbose_name = 'Tila'
+        verbose_name_plural = 'Tilat'
         ordering = ('workflow', 'order')
         index_together = [
             ('workflow', 'order'),
@@ -72,7 +76,7 @@ class State(models.Model):
             ('workflow', 'slug'),
         ]
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     def as_dict(self):
@@ -85,21 +89,21 @@ class State(models.Model):
 
 
 class MessageType(models.Model):
-    event_slug = models.CharField(verbose_name=u'tapahtuman tunniste', max_length=64, db_index=True)
-    name = models.CharField(verbose_name=u'nimi', max_length=128)
-    slug = models.CharField(verbose_name=u'tunniste', max_length=64)
-    workflow = models.ForeignKey(Workflow, verbose_name=u'työnkulku', related_name='message_type_set')
-    default = models.BooleanField(default=False, verbose_name=u'tapahtuman oletus')
-    color = models.CharField(verbose_name=u'väri', max_length=32, help_text=u'CSS:n hyväksymä värimääritys')
+    event_slug = models.CharField(verbose_name='tapahtuman tunniste', max_length=64, db_index=True)
+    name = models.CharField(verbose_name='nimi', max_length=128)
+    slug = models.CharField(verbose_name='tunniste', max_length=64)
+    workflow = models.ForeignKey(Workflow, verbose_name='työnkulku', related_name='message_type_set')
+    default = models.BooleanField(default=False, verbose_name='tapahtuman oletus')
+    color = models.CharField(verbose_name='väri', max_length=32, help_text='CSS:n hyväksymä värimääritys')
 
     class Meta:
-        verbose_name = u'viestityyppi'
-        verbose_name_plural = u'viestityypit'
+        verbose_name = 'viestityyppi'
+        verbose_name_plural = 'viestityypit'
         unique_together = [
             ('event_slug', 'slug'),
         ]
 
-    def __unicode__(self):
+    def __str__(self):
         return self.name
 
     @property
@@ -115,50 +119,54 @@ class MessageType(models.Model):
         )
 
 
+@python_2_unicode_compatible
 class Message(models.Model):
-    message_type = models.ForeignKey(MessageType, verbose_name=u'viestityyppi', related_name='message_set')
-    message = models.TextField(verbose_name=u'viesti')
-    author = models.CharField(verbose_name=u'kirjoittaja', max_length=128)
+    message_type = models.ForeignKey(MessageType, verbose_name='viestityyppi', related_name='message_set')
+    message = models.TextField(verbose_name='viesti')
+    author = models.CharField(verbose_name='kirjoittaja', max_length=128)
 
     state = models.ForeignKey(State)
 
-    created_by = models.ForeignKey('auth.User',
-        verbose_name=u'lisääjä',
+    created_by = models.ForeignKey(
+        'auth.User',
+        verbose_name='lisääjä',
         null=True,
         blank=True,
         related_name='+',
     )
-    updated_by = models.ForeignKey('auth.User',
-        verbose_name=u'viimeisin muokkaaja',
+    updated_by = models.ForeignKey(
+        'auth.User',
+        verbose_name='viimeisin muokkaaja',
         null=True,
         blank=True,
         related_name='+',
     )
-    deleted_by = models.ForeignKey('auth.User',
-        verbose_name=u'poistaja',
+    deleted_by = models.ForeignKey(
+        'auth.User',
+        verbose_name='poistaja',
         null=True,
         blank=True,
         related_name='+',
     )
 
-    event_slug = models.CharField(verbose_name=u'tapahtuman tunniste', max_length=64)
+    event_slug = models.CharField(verbose_name='tapahtuman tunniste', max_length=64)
 
-    created_at = models.DateTimeField(verbose_name=u'lisäysaika', auto_now_add=True)
-    updated_at = models.DateTimeField(verbose_name=u'muokkausaika', auto_now=True)
-    deleted_at = models.DateTimeField(blank=True, null=True, verbose_name=u'poistoaika')
+    created_at = models.DateTimeField(verbose_name='lisäysaika', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='muokkausaika', auto_now=True)
+    deleted_at = models.DateTimeField(blank=True, null=True, verbose_name='poistoaika')
 
     @property
     def is_deleted(self):
         return self.deleted_at is not None
 
     class Meta:
-        verbose_name = u'viesti'
-        verbose_name_plural = u'viestit'
+        verbose_name = 'viesti'
+        verbose_name_plural = 'viestit'
         index_together = [
             ('event_slug', 'created_at'),
         ]
 
-    def __unicode__(self):
+    def __str__(self):
         return self.message
 
     def save(self, *args, **kwargs):
@@ -205,9 +213,9 @@ class Message(models.Model):
 
 class MessageEventBase(models.Model):
     """A MessageEventBase is either a state change event or a comment on a message."""
-    message = models.ForeignKey(Message, verbose_name=u'viesti', related_name='%(class)s_set')
+    message = models.ForeignKey(Message, verbose_name='viesti', related_name='%(class)s_set')
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
-    author = models.CharField(verbose_name=u'muokkaaja', max_length=128)
+    author = models.CharField(verbose_name='muokkaaja', max_length=128)
 
     def as_dict(self):
         return dict(
@@ -240,7 +248,7 @@ class MessageStateChangeEvent(MessageEventBase):
 
 class MessageEditEvent(MessageEventBase):
     # text represents the new text of the message
-    text = models.TextField(verbose_name=u'viesti')
+    text = models.TextField(verbose_name='viesti')
 
     def as_dict(self):
         return dict(
@@ -251,7 +259,7 @@ class MessageEditEvent(MessageEventBase):
 
 
 class MessageComment(MessageEventBase):
-    comment = models.TextField(verbose_name=u'kommentti')
+    comment = models.TextField(verbose_name='kommentti')
 
     def as_dict(self):
         return dict(
@@ -262,7 +270,7 @@ class MessageComment(MessageEventBase):
 
 
 class MessageCreateEvent(MessageEventBase):
-    text = models.TextField(verbose_name=u'viesti')
+    text = models.TextField(verbose_name='viesti')
 
     def as_dict(self):
         return dict(

@@ -29,5 +29,5 @@ urlpatterns = [
     url(r'^api/v1/events/(?P<event_slug>[a-z0-9-]+)/messages/(?P<message_id>\d+)/events?$',
         csrf_exempt(MessageEventsView.as_view()),
         name='infokala_message_events_view',
-    )
+    ),
 ]

@@ -14,8 +14,8 @@ SLUGIFY_CHAR_MAP = {
   u'_': u'-',
   u'.': u'-',
 }
-SLUGIFY_FORBANNAD_RE = re.compile(ur'[^a-z0-9-]', re.UNICODE)
-SLUGIFY_MULTIDASH_RE = re.compile(ur'-+', re.UNICODE)
+SLUGIFY_FORBANNAD_RE = re.compile(r'[^a-z0-9-]', re.UNICODE)
+SLUGIFY_MULTIDASH_RE = re.compile(r'-+', re.UNICODE)
 
 
 def slugify(ustr):

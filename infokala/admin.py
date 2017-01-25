@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Workflow, State, MessageType, Message
+from .models import Message, MessageType, State, Workflow
 
 
 class StateInline(admin.TabularInline):
