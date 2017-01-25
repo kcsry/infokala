@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
+
 import json
 import logging
+from itertools import chain
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -10,10 +12,10 @@ from django.utils.encoding import force_text
 from django.views.generic import View
 
 from dateutil.parser import parse as parse_datetime
-from itertools import chain
 
-from .models import Message, MessageType, Workflow, MessageCreateEvent, MessageEditEvent, MessageStateChangeEvent, \
-    MessageComment
+from .models import (
+    Message, MessageComment, MessageCreateEvent, MessageEditEvent, MessageStateChangeEvent, MessageType, Workflow
+)
 
 JSON_FORBIDDEN = dict(
     status=403,

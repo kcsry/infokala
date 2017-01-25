@@ -2,10 +2,9 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-from infokala.seeding import create_default_workflows, create_default_message_types
-
+from infokala.models import Message, MessageType
+from infokala.seeding import create_default_message_types, create_default_workflows
 from infokala_test_app.models import Event
-from infokala.models import MessageType, Message
 
 
 class Command(BaseCommand):

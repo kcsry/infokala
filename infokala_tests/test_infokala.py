@@ -1,7 +1,8 @@
 import json
 
-import pytest
 from django.shortcuts import resolve_url
+
+import pytest
 
 from infokala.models import Message
 from infokala_tests.utils import get_data_from_response
