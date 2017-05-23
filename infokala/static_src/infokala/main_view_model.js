@@ -238,11 +238,11 @@ export default class MainViewModel {
     const state = filter.state.slug;
     let hash;
     if (type === state && state === '_all') {
-      hash = window.location.hash = '';
+      hash = '';
     } else if (state === '_all') {
-      hash = window.location.hash = `#${type}`;
+      hash = `#${type}`;
     } else {
-      hash = window.location.hash = `#${type}/${state}`;
+      hash = `#${type}/${state}`;
     }
     window.location.hash = hash;
     return hash;
