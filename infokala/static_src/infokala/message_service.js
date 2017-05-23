@@ -36,24 +36,24 @@ export function enrichMessages(messages) {
 }
 
 export function getMessagesSince(since) {
-  return exports.getJSON(`/?since=${encodeURIComponent(since)}`).then(enrichMessages);
+  return getJSON(`/?since=${encodeURIComponent(since)}`).then(enrichMessages);
 }
 export function getAllMessages() {
-  return exports.getJSON('/').then(enrichMessages);
+  return getJSON('/').then(enrichMessages);
 }
 export function sendMessage(message) {
-  return exports.postJSON('/', message).then(enrichMessage);
+  return postJSON('/', message).then(enrichMessage);
 }
 export function updateMessage(messageId, update) {
-  return exports.postJSON(`/${messageId}`, update).then(enrichMessage);
+  return postJSON(`/${messageId}`, update).then(enrichMessage);
 }
 export function deleteMessage(messageId) {
-  return exports.deleteJSON(`/${messageId}`).then(enrichMessage);
+  return deleteJSON(`/${messageId}`).then(enrichMessage);
 }
 
 export function getMessageEvents(messageId) {
-  return exports.getJSON(`/${messageId}/events`);
+  return getJSON(`/${messageId}/events`);
 }
 export function postComment(messageId, data) {
-  return exports.postJSON(`/${messageId}/events`, data);
+  return postJSON(`/${messageId}/events`, data);
 }
