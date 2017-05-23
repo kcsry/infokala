@@ -15,7 +15,9 @@ const plugins = [
   }),
   new webpack.optimize.CommonsChunkPlugin({
     name: 'vendor',
-    minChunks: Infinity,
+    minChunks: function (module) {
+      return module.context && module.context.indexOf("node_modules") !== -1;
+    },
     filename: 'vendor.js'
   }),
   new CopyWebpackPlugin([
@@ -23,7 +25,7 @@ const plugins = [
       from: 'infokala/infokala.pug',
       to: 'infokala.html',
       transform: (content, path) => {
-        return pug.render(content, {compileDebug: !isProd}, path);
+        return pug.render(content, { compileDebug: !isProd }, path);
       }
     },
   ]),
@@ -60,7 +62,6 @@ module.exports = {
   context: sourcePath,
   entry: {
     infokala: 'infokala/infokala.js',
-    vendor: ['lodash', 'knockout', 'es6-promise', 'isomorphic-fetch', 'linkifyjs'],
   },
   output: {
     path: staticsPath,
