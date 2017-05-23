@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "prepublish": "webpack",
-    "start": "webpack",
-    "test": "python manage.py test"
+    "start": "webpack"
   },
   "repository": {
     "type": "git",
