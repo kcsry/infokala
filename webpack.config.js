@@ -1,7 +1,6 @@
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const pug = require('pug');
-const stylus = require('stylus');
 const webpack = require('webpack');
 
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -30,19 +29,6 @@ const plugins = [
       to: 'infokala.html',
       transform: (content, path) => {
         return pug.render(content, {compileDebug: !isProd}, path);
-      }
-    },
-    {
-      from: 'infokala/infokala.stylus',
-      to: 'infokala.css',
-      transform: (content, path) => {
-        try {
-          content = content.toString();
-          return stylus.render(content, { filename: path });
-        } catch (e) {
-          console.log('Error when compiling Stylus: ' + e.toString());
-          throw e;
-        }
       }
     },
   ]),
@@ -92,6 +78,27 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           'babel-loader',
+        ],
+      },
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          'css-loader',
+        ],
+      },
+      {
+        test: /\.stylus/,
+        use: [
+          'style-loader',
+          'css-loader',
+          'stylus-loader',
+        ],
+      },
+      {
+        test: /\.(woff|ttf|eot|svg|png|jpeg)/,
+        use: [
+          'url-loader?name=[name].[hash:6].[ext]&limit=10000',
         ],
       },
     ],
