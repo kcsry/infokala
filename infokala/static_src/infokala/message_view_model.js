@@ -97,12 +97,10 @@ export default class MessageViewModel {
     this.isMessageOpen = ko.observable(false);
   }
 
-
   // Get the display message with URLs linkified
   getDisplayMessage() {
     return linkify(escapeHtml(this.message()));
   }
-
 
   // Return the next state of the message according to the workflow
   nextState() {
@@ -112,12 +110,10 @@ export default class MessageViewModel {
     return states[currentStateIndex + 1] || states[0];
   }
 
-
   // Return whether or not the message state is cycleable, that is, if there's more than one state in the workflow.
   isCycleable() {
     return this.messageType.workflow.states.length > 1;
   }
-
 
   // Does the message match the filter? Currently only slug filtering is supported.
   matchesFilter(filter) {
@@ -139,10 +135,11 @@ export default class MessageViewModel {
     return typeMatches && stateMatches;
   }
 
-
   // Change the message state to the next possible one according to the workflow. No-op is !isCycleable.
   cycleMessageState() {
-    if (!this.isCycleable) { return; }
+    if (!this.isCycleable) {
+      return;
+    }
 
     updateMessage(this.id, {
       message: this.message(),
@@ -156,7 +153,6 @@ export default class MessageViewModel {
     });
   }
 
-
   // Toggle the editing state of the message.
   toggleEdit() {
     if (this.isEditingOpen()) {
@@ -166,16 +162,15 @@ export default class MessageViewModel {
     return this.isEditingOpen(true);
   }
 
-
   // Confirm and delete the message.
   deleteMessage() {
-    if (window.confirm('Haluatko varmasti poistaa viestin?')) {  // eslint-disable-line no-alert
+    if (window.confirm('Haluatko varmasti poistaa viestin?')) {
+      // eslint-disable-line no-alert
       deleteMessage(this.id).then((data) => {
         this.updateWith(data);
       });
     }
   }
-
 
   // Toggle the message history/comments visibility.
   toggleOpen(__, evt) {
@@ -190,44 +185,38 @@ export default class MessageViewModel {
     return this.updateEvents().then(() => this.isMessageOpen(true));
   }
 
-
   // Fetch and update the message events and comments.
   updateEvents() {
     return getMessageEvents(this.id).then((events) => {
-      const formattedEvents = (events.map(e => formatEvent(e, this.messageType)));
+      const formattedEvents = events.map(e => formatEvent(e, this.messageType));
       return this.eventList(formattedEvents);
     });
   }
-
 
   // Event handler for message edit submission.
   handleEdit() {
     this.message(this.newText());
     this.isEditPending(true);
     this.isEditingOpen(false);
-    return updateMessage(
-      this.id,
-      { state: this.state().slug, message: this.newText(), author: this.app.author() }
-    ).then((newMessage) => {
+    return updateMessage(this.id, {
+      state: this.state().slug,
+      message: this.newText(),
+      author: this.app.author(),
+    }).then((newMessage) => {
       this.updateWith(newMessage);
       return this.isEditPending(false);
     });
   }
 
-
   // Event handler for new comment submission.
   handleComment() {
     this.isCommentPending(true);
-    return postComment(
-      this.id,
-      { author: this.app.author(), comment: this.newComment() }
-    ).then((event) => {
+    return postComment(this.id, { author: this.app.author(), comment: this.newComment() }).then((event) => {
       this.newComment('');
       this.isCommentPending(false);
       return this.eventList.unshift(formatEvent(event, this.messageType));
     });
   }
-
 
   // Update the message with new data.
   updateWith(data) {

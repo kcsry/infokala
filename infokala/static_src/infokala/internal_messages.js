@@ -2,7 +2,6 @@ import { config } from './config_service';
 import MessageViewModel from './message_view_model';
 import { getDayStart } from './utils';
 
-
 // Add the internal workflow and message type to the configuration, currently used for the day change pseudo-messages
 /* eslint-disable no-param-reassign, no-shadow */
 export function enrichConfiguration(config) {
@@ -10,12 +9,14 @@ export function enrichConfiguration(config) {
     slug: '_internal',
     name: '_internal',
     initialState: '_internal',
-    states: [{
-      slug: '_internal',
-      name: '_internal',
-      active: true,
-      labelClass: '',
-    }],
+    states: [
+      {
+        slug: '_internal',
+        name: '_internal',
+        active: true,
+        labelClass: '',
+      },
+    ],
   };
 
   internalWorkflow.statesBySlug = { _internal: internalWorkflow.states[0] };
@@ -34,7 +35,6 @@ export function enrichConfiguration(config) {
   config.messageTypesBySlug._internal = internalMessageType;
 }
 /* eslint-enable no-param-reassign, no-shadow, no-underscore-dangle */
-
 
 // Generate a day change pseudo-message for the day of the given timestamp
 export function getDayChangeMessage(timestamp) {

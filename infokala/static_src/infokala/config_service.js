@@ -2,12 +2,7 @@ import keyBy from 'lodash/keyBy';
 
 export const config = window.infokalaConfig; // eslint-disable-line import/prefer-default-export
 
-config.workflows.forEach(workflow =>
-  Object.assign(
-    workflow,
-    { statesBySlug: keyBy(workflow.states, 'slug') }
-  )
-);
+config.workflows.forEach(workflow => Object.assign(workflow, { statesBySlug: keyBy(workflow.states, 'slug') }));
 
 config.workflowsBySlug = keyBy(config.workflows, 'slug');
 

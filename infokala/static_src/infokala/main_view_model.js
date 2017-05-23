@@ -37,9 +37,9 @@ export default class MainViewModel {
     this.visibleMessageTypes = config.messageTypes.filter(c => !c.slug.startsWith('_'));
 
     // Generate stylesheet for message types
-    const styleText = config.messageTypes.map(
-      ({ slug, color }) => `.infokala-msgtype-${slug} { border-left: 6px solid ${color} }`
-    ).join('\n');
+    const styleText = config.messageTypes
+      .map(({ slug, color }) => `.infokala-msgtype-${slug} { border-left: 6px solid ${color} }`)
+      .join('\n');
 
     const styleSheet = document.createElement('style');
     styleSheet.textContent = styleText;
@@ -71,13 +71,19 @@ export default class MainViewModel {
     // Using ko.pureComputed on @messages would be O(n) on every new or changed message – suicide
     this.messagesById = {};
     this.messages.subscribe(this.messageUpdated, null, 'arrayChange');
-    this.visibleMessages.subscribe((changes) => {
-      changes.forEach((change) => {
-        if (change.status !== 'added') { return; }
-        const message = change.value;
-        message.visibleIndex = change.index;
-      });
-    }, null, 'arrayChange');
+    this.visibleMessages.subscribe(
+      (changes) => {
+        changes.forEach((change) => {
+          if (change.status !== 'added') {
+            return;
+          }
+          const message = change.value;
+          message.visibleIndex = change.index;
+        });
+      },
+      null,
+      'arrayChange'
+    );
 
     this.messageTypeFilters = ko.observable(
       [
@@ -85,7 +91,7 @@ export default class MainViewModel {
           name: 'Kaikki',
           slug: null,
         },
-      ].concat(config.messageTypes.filter(mt => !mt.internal)),
+      ].concat(config.messageTypes.filter(mt => !mt.internal))
     );
 
     // Special objects used as special filters
@@ -133,8 +139,7 @@ export default class MainViewModel {
     let last = null;
     oldVisible.forEach((msg) => {
       if (!msg.messageType.internal) {
-        if ((last === null) ||
-            (last && getDayStart(last.createdAt).getTime() !== getDayStart(msg.createdAt).getTime())) {
+        if (last === null || (last && getDayStart(last.createdAt).getTime() !== getDayStart(msg.createdAt).getTime())) {
           newVisible.push(getDayChangeMessage(msg.createdAt));
         }
         newVisible.push(msg);
@@ -191,7 +196,9 @@ export default class MainViewModel {
     // Only refresh the filter if it has changed
     const filter = this.activeFilter();
     const activeType = !filter.type ? '_all' : filter.type;
-    if (type === activeType && state === filter.state.slug) { return null; }
+    if (type === activeType && state === filter.state.slug) {
+      return null;
+    }
 
     // Filter type
     let typeObj = null;
@@ -208,10 +215,12 @@ export default class MainViewModel {
       // Special state filters are always applicable
       if (state.startsWith('_')) {
         findIn = this.messageStateSpecialFilters();
-      // Non-special state filters are allowed when type is non-special
+        // Non-special state filters are allowed when type is non-special
       } else if (filter.type) {
         const messageType = config.messageTypesBySlug[filter.type];
-        if (messageType) { findIn = messageType.states; }
+        if (messageType) {
+          findIn = messageType.states;
+        }
       }
 
       const foundState = find(findIn, s => s.slug === state);
@@ -273,7 +282,9 @@ export default class MainViewModel {
 
   messageUpdated(changes) {
     return changes.forEach((change) => {
-      if (change.status !== 'added') { return; }
+      if (change.status !== 'added') {
+        return;
+      }
 
       const message = change.value;
       message.index = change.index;
@@ -282,7 +293,9 @@ export default class MainViewModel {
   }
 
   sendMessage() {
-    if (this.message() === '') { return; }
+    if (this.message() === '') {
+      return;
+    }
     sendMessage({
       messageType: this.effectiveMessageType(),
       author: this.author(),
@@ -303,5 +316,7 @@ export default class MainViewModel {
     this.addDayChangeMessages();
   }
 
-  shouldShowMessageType() { return !this.activeFilter().type; }
+  shouldShowMessageType() {
+    return !this.activeFilter().type;
+  }
 }

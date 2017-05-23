@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "prepublish": "webpack",
-    "start": "webpack"
+    "start": "webpack",
+    "prettify": "prettier --single-quote --trailing-comma es5 --print-width 120 --write infokala/static_src/**/*.js"
   },
   "repository": {
     "type": "git",
@@ -27,6 +28,7 @@
     "eslint-config-airbnb-base": "^11.2.0",
     "eslint-plugin-import": "^2.2.0",
     "file-loader": "^0.11.1",
+    "prettier": "^1.3.1",
     "style-loader": "^0.18.0",
     "stylus-loader": "^3.0.1",
     "url-loader": "^0.5.8",
