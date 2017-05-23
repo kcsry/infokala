@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 import { config } from './config_service';
 
 
@@ -21,18 +19,17 @@ export function postJSON(path, obj) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(obj),
-  }
-  ).then(response => response.json());
+  }).then(response => response.json());
 }
 
 export function enrichMessage(message) {
   const messageType = config.messageTypesBySlug[message.messageType];
-  return _.extend(message, {
+  return Object.assign(message, {
     messageType,
     state: messageType.workflow.statesBySlug[message.state],
   });
 }
-export function enrichMessages(messages) { return _.map(messages, enrichMessage); }
+export function enrichMessages(messages) { return messages.map(enrichMessage); }
 
 export function getMessagesSince(since) {
   return exports.getJSON(`/?since=${encodeURIComponent(since)}`).then(enrichMessages);

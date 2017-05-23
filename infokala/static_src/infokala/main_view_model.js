@@ -1,5 +1,5 @@
 import * as ko from 'knockout';
-import _ from 'lodash';
+import find from 'lodash/find';
 
 import { getAllMessages, getMessagesSince, sendMessage } from './message_service';
 import { enrichConfiguration, getDayChangeMessage } from './internal_messages';
@@ -34,12 +34,11 @@ export default class MainViewModel {
 
     // Exclude internal message types starting with an underscore
     // An underscore is not valid in a message type slug, so this should never hit legitimate message typess
-    this.visibleMessageTypes = _.filter(config.messageTypes, c => !c.slug.startsWith('_'));
+    this.visibleMessageTypes = config.messageTypes.filter(c => !c.slug.startsWith('_'));
 
     // Generate stylesheet for message types
-    const styleText = _.map(
-      config.messageTypesBySlug,
-      (v, k) => `.infokala-msgtype-${k} { border-left: 6px solid ${v.color} }`
+    const styleText = config.messageTypes.map(
+      ({ slug, color }) => `.infokala-msgtype-${slug} { border-left: 6px solid ${color} }`
     ).join('\n');
 
     const styleSheet = document.createElement('style');
@@ -86,7 +85,7 @@ export default class MainViewModel {
           name: 'Kaikki',
           slug: null,
         },
-      ].concat(_.filter(config.messageTypes, mt => !mt.internal)),
+      ].concat(config.messageTypes.filter(mt => !mt.internal)),
     );
 
     // Special objects used as special filters
@@ -122,10 +121,7 @@ export default class MainViewModel {
     if (this.latestMessageTimestamp) {
       getMessagesSince(this.latestMessageTimestamp).then(this.updateMessages);
       // TODO: This could be grouped into a single request instead of one for every open message
-      return _.forEach(
-        _.filter(this.messages(), m => m.isMessageOpen()),
-        m => m.updateEvents(),
-      );
+      this.messages().filter(m => m.isMessageOpen()).forEach(m => m.updateEvents());
     }
     return getAllMessages().then(this.updateMessages);
   }
@@ -218,7 +214,7 @@ export default class MainViewModel {
         if (messageType) { findIn = messageType.states; }
       }
 
-      const foundState = _.find(findIn, s => s.slug === state);
+      const foundState = find(findIn, s => s.slug === state);
       if (foundState) {
         filter.state = foundState;
       }
@@ -257,7 +253,7 @@ export default class MainViewModel {
   }
 
   setFilterType(messageType) {
-    this.activeFilter(_.extend(this.activeFilter(), { type: messageType.slug }));
+    this.activeFilter(Object.assign(this.activeFilter(), { type: messageType.slug }));
     const filter = this.activeFilter();
     filter.type = messageType.slug;
     this.activeFilter({ type: messageType.slug, state: this.filterAll });
@@ -266,7 +262,7 @@ export default class MainViewModel {
   }
 
   setFilterState(messageState) {
-    this.activeFilter(_.extend(this.activeFilter(), { state: messageState }));
+    this.activeFilter(Object.assign(this.activeFilter(), { state: messageState }));
     return this.updateHashFromFilter();
   }
 
@@ -302,7 +298,7 @@ export default class MainViewModel {
     this.visibleMessages.splice(
       0,
       this.visibleMessages().length,
-      ..._.filter(this.messages(), m => m.matchesFilter(newFilter))
+      ...this.messages().filter(m => m.matchesFilter(newFilter))
     );
     this.addDayChangeMessages();
   }

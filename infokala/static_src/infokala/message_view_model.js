@@ -1,5 +1,5 @@
 import ko from 'knockout';
-import _ from 'lodash';
+import findIndex from 'lodash/findIndex';
 import linkify from 'linkifyjs/html';
 
 import { getMessageEvents, postComment, updateMessage, deleteMessage } from './message_service';
@@ -108,7 +108,7 @@ export default class MessageViewModel {
   nextState() {
     // A, B, C -> A, B, C, A, B, C, ...
     const { states } = this.messageType.workflow;
-    const currentStateIndex = _.findIndex(states, { slug: this.state().slug });
+    const currentStateIndex = findIndex(states, { slug: this.state().slug });
     return states[currentStateIndex + 1] || states[0];
   }
 
