@@ -18,11 +18,6 @@ const plugins = [
     minChunks: Infinity,
     filename: 'vendor.js'
   }),
-  new webpack.ProvidePlugin({
-      jQuery: 'jquery',
-      $: 'jquery',
-      jquery: 'jquery'
-  }),
   new CopyWebpackPlugin([
     {
       from: 'infokala/infokala.pug',
@@ -65,7 +60,7 @@ module.exports = {
   context: sourcePath,
   entry: {
     infokala: 'infokala/infokala.js',
-    vendor: ['lodash', 'knockout', 'es6-promise', 'isomorphic-fetch', 'bootstrap', 'linkifyjs', 'jquery'],
+    vendor: ['lodash', 'knockout', 'es6-promise', 'isomorphic-fetch', 'linkifyjs'],
   },
   output: {
     path: staticsPath,

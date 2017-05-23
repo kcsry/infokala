@@ -1,7 +1,5 @@
 import { polyfill } from 'es6-promise';
 import 'isomorphic-fetch';
-import 'jquery';
-import 'bootstrap';
 import * as ko from 'knockout';
 
 import bootstrapStyle from 'bootstrap/dist/css/bootstrap.min.css';  // eslint-disable-line no-unused-vars

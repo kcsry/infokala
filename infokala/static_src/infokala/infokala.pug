@@ -18,12 +18,12 @@ html
             li(data-bind='css: { active: slug === $parent.activeFilter().type }')
               a(href, data-bind='text: name, click: $parent.setFilterType')
           ul.nav.navbar-nav.navbar-right
-            li.dropdown
-              a.dropdown-toggle(href, data-toggle='dropdown')
-                span(data-bind='text: config.user.displayName')
-                b.caret
-              ul.dropdown-menu
-                li: a(href, data-bind='attr: { href: config.logoutUrl }') Kirjaudu ulos
+            li: a(href, data-bind='attr: { href: config.logoutUrl }')
+              | Kirjaa
+              |
+              b(data-bind='text: config.user.displayName')
+              |
+              | ulos
 
     .infokala-push-top
 
