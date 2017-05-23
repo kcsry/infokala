@@ -27,7 +27,7 @@ class Command(BaseCommand):
         )
 
         workflows = create_default_workflows()
-        create_default_message_types(event, workflows)
+        create_default_message_types(event_slug=event.slug, workflows=workflows)
 
         if not Message.objects.exists():
             message_type = MessageType.objects.get(event_slug=event.slug, slug='event')

@@ -55,6 +55,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = mkpath('static')
 
 LOGIN_URL = '/admin/login/'
+LOGOUT_URL = '/admin/logout/'
 
 TEMPLATES = [
     {
