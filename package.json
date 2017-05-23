@@ -18,42 +18,25 @@
     "url": "https://github.com/kcsry/infokala/issues"
   },
   "homepage": "https://github.com/kcsry/infokala",
-  "dependencies": {
-    "babel": "^6.5.2",
-    "babel-core": "^6.21.0",
-    "babel-loader": "^6.2.10",
-    "babel-preset-es2015": "^6.18.0",
-    "babel-preset-stage-0": "^6.16.0",
-    "bootstrap": "^3.3.4",
-    "bower": "^1.3.12",
-    "browserify": "^5.12.0",
-    "coffeeify": "^0.7.0",
+  "devDependencies": {
+    "babel-core": "^6.24.1",
+    "babel-loader": "^7.0.0",
+    "babel-preset-env": "^1.5.1",
     "copy-webpack-plugin": "^4.0.1",
-    "es6-promise": "^3.0.2",
-    "eslint": "^3.12.2",
-    "eslint-config-airbnb-base": "^11.0.0",
+    "eslint": "^3.19.0",
+    "eslint-config-airbnb-base": "^11.2.0",
     "eslint-plugin-import": "^2.2.0",
-    "hammerjs": "^2.0.4",
-    "isomorphic-fetch": "^2.2.0",
-    "jquery": "^2.1.4",
-    "knockout": "^3.2.0",
-    "linkifyjs": "^2.0.0-beta.9",
-    "lodash": "^2.4.1",
-    "mocha": "^1.21.4",
-    "nib": "^1.0.3",
-    "page": "^1.5.0",
-    "proxyquire": "^1.0.1",
-    "pug": "^2.0.0-beta6",
-    "should": "^4.0.4",
-    "sinon": "^1.10.3",
-    "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.0.0",
-    "webpack": "^2.2.0-rc.1",
-    "winston": "^0.8.0"
+    "webpack": "^2.6.0"
   },
-  "browserify": {
-    "transform": [
-      "coffeeify"
-    ]
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "es6-promise": "^4.1.0",
+    "isomorphic-fetch": "^2.2.1",
+    "jquery": "^3.2.1",
+    "knockout": "^3.4.2",
+    "linkifyjs": "^2.1.4",
+    "lodash": "^4.17.4",
+    "pug": "^2.0.0-rc.1",
+    "stylus": "^0.54.5"
   }
 }

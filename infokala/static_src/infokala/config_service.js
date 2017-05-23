@@ -4,10 +4,10 @@ export let config = window.infokalaConfig;
 
 config.workflows.forEach(workflow =>
   _.extend(workflow,
-    {statesBySlug: _.indexBy(workflow.states, 'slug')})
+    {statesBySlug: _.keyBy(workflow.states, 'slug')})
 );
 
-config.workflowsBySlug = _.indexBy(config.workflows, 'slug');
+config.workflowsBySlug = _.keyBy(config.workflows, 'slug');
 
 config.messageTypes.forEach((messageType) => {
   _.extend(messageType, {
@@ -16,4 +16,4 @@ config.messageTypes.forEach((messageType) => {
   });
 });
 
-config.messageTypesBySlug = _.indexBy(config.messageTypes, 'slug');
+config.messageTypesBySlug = _.keyBy(config.messageTypes, 'slug');
