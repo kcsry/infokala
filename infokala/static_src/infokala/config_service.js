@@ -1,19 +1,16 @@
-import _ from 'lodash';
+import keyBy from 'lodash/keyBy';
 
 export const config = window.infokalaConfig; // eslint-disable-line import/prefer-default-export
 
-config.workflows.forEach(workflow =>
-  _.extend(workflow,
-    { statesBySlug: _.keyBy(workflow.states, 'slug') })
-);
+config.workflows.forEach(workflow => Object.assign(workflow, { statesBySlug: keyBy(workflow.states, 'slug') }));
 
-config.workflowsBySlug = _.keyBy(config.workflows, 'slug');
+config.workflowsBySlug = keyBy(config.workflows, 'slug');
 
 config.messageTypes.forEach((messageType) => {
-  _.extend(messageType, {
+  Object.assign(messageType, {
     workflow: config.workflowsBySlug[messageType.workflow],
     internal: messageType.internal || false,
   });
 });
 
-config.messageTypesBySlug = _.keyBy(config.messageTypes, 'slug');
+config.messageTypesBySlug = keyBy(config.messageTypes, 'slug');

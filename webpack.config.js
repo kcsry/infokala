@@ -1,7 +1,6 @@
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const path = require('path');
 const pug = require('pug');
-const stylus = require('stylus');
 const webpack = require('webpack');
 
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -16,33 +15,17 @@ const plugins = [
   }),
   new webpack.optimize.CommonsChunkPlugin({
     name: 'vendor',
-    minChunks: Infinity,
+    minChunks: function (module) {
+      return module.context && module.context.indexOf("node_modules") !== -1;
+    },
     filename: 'vendor.js'
-  }),
-  new webpack.ProvidePlugin({
-      jQuery: 'jquery',
-      $: 'jquery',
-      jquery: 'jquery'
   }),
   new CopyWebpackPlugin([
     {
       from: 'infokala/infokala.pug',
       to: 'infokala.html',
       transform: (content, path) => {
-        return pug.render(content, {compileDebug: !isProd}, path);
-      }
-    },
-    {
-      from: 'infokala/infokala.stylus',
-      to: 'infokala.css',
-      transform: (content, path) => {
-        try {
-          content = content.toString();
-          return stylus.render(content, { filename: path });
-        } catch (e) {
-          console.log('Error when compiling Stylus: ' + e.toString());
-          throw e;
-        }
+        return pug.render(content, { compileDebug: !isProd }, path);
       }
     },
   ]),
@@ -79,7 +62,6 @@ module.exports = {
   context: sourcePath,
   entry: {
     infokala: 'infokala/infokala.js',
-    vendor: ['lodash', 'knockout', 'es6-promise', 'isomorphic-fetch', 'bootstrap', 'linkifyjs', 'jquery'],
   },
   output: {
     path: staticsPath,
@@ -92,6 +74,27 @@ module.exports = {
         exclude: /node_modules/,
         use: [
           'babel-loader',
+        ],
+      },
+      {
+        test: /\.css$/,
+        use: [
+          'style-loader',
+          'css-loader',
+        ],
+      },
+      {
+        test: /\.stylus/,
+        use: [
+          'style-loader',
+          'css-loader',
+          'stylus-loader',
+        ],
+      },
+      {
+        test: /\.(woff|ttf|eot|svg|png|jpeg)/,
+        use: [
+          'url-loader?name=[name].[hash:6].[ext]&limit=10000',
         ],
       },
     ],

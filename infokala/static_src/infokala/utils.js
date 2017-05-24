@@ -4,7 +4,6 @@ export function getDayStart(timestamp) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-
 const replacements = {
   '&': '&amp;',
   '<': '&lt;',
@@ -14,12 +13,10 @@ const replacements = {
   "'": '&#x27;',
 };
 
-
 // Utility: Escape HTML.
 export function escapeHtml(str) {
   return String(str).replace(/[&<>"'/]/g, s => replacements[s]);
 }
-
 
 // Formats an event structure to a form with a human-readable text and presentation metadata
 export function formatEvent(event, messageType) {
