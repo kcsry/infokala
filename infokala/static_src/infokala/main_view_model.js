@@ -125,9 +125,9 @@ export default class MainViewModel {
 
   refresh() {
     if (this.latestMessageTimestamp) {
-      getMessagesSince(this.latestMessageTimestamp).then(this.updateMessages);
       // TODO: This could be grouped into a single request instead of one for every open message
       this.messages().filter(m => m.isMessageOpen()).forEach(m => m.updateEvents());
+      return getMessagesSince(this.latestMessageTimestamp).then(this.updateMessages);
     }
     return getAllMessages().then(this.updateMessages);
   }
