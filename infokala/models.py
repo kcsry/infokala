@@ -1,6 +1,4 @@
 # encoding: utf-8
-from __future__ import unicode_literals
-
 from warnings import warn
 
 from django.conf import settings
@@ -8,10 +6,10 @@ from django.db import models
 from django.utils.six import python_2_unicode_compatible
 from django.utils.timezone import now
 
-from dateutil.tz import tzlocal
+from tzlocal import get_localzone
 
 TIME_FORMAT = '%H:%M:%S'
-TZLOCAL = tzlocal()
+TZLOCAL = get_localzone()
 
 
 def formatted_time(dt):

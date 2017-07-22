@@ -27,6 +27,7 @@ export default class MainViewModel {
     this.sendMessage = this.sendMessage.bind(this);
     this.filterChanged = this.filterChanged.bind(this);
     this.shouldShowMessageType = this.shouldShowMessageType.bind(this);
+    this.isLoading = ko.observable(true);
 
     this.config = config;
     this.messages = ko.observableArray([]);
@@ -117,6 +118,7 @@ export default class MainViewModel {
 
     getAllMessages().then((messages) => {
       this.updateMessages(messages);
+      this.isLoading(false);
 
       // Setup polling
       return window.setInterval(this.refresh, refreshMilliseconds);
