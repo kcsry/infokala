@@ -80,7 +80,6 @@ html
               rect(x="47", y="24", rx="9.4", ry="4.8", width="6", height="12")
                 animate(attributeName="opacity", values="1;0", times="0;1", dur="1s", begin="0s", repeatCount="indefinite")
 
-
     .container(style='display: none', data-bind='visible: !isLoading(), foreach: visibleMessages')
       div(data-bind='attr: {id: "infokala-message-" + id, "class": "infokala-message infokala-msgtype-" + messageType.slug}, css: {"infokala-message-cycleable": isCycleable, "infokala-message-deleted": isDeleted, "infokala-open": isMessageOpen}')
         .row.infokala-action-row
@@ -131,13 +130,14 @@ html
     .container(style='display: none', data-bind='visible: !isLoading()')
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')
         .row
-          .col-md-1.infokala-author-col
+          .col-md-2.col-sm-3.infokala-author-col
             input.form-control(data-bind='value: author')
-          .infokala-message-col(data-bind='css: { "col-md-9": shouldShowMessageType(), "col-md-11": !shouldShowMessageType(), "infokala-message-col-middle": shouldShowMessageType() }')
+          .infokala-message-col.col-sm-9(data-bind='css: { "col-md-7": shouldShowMessageType(), "col-md-9": !shouldShowMessageType(), "infokala-message-col-middle": shouldShowMessageType() }')
             input.form-control(data-bind='value: message', placeholder='Viesti...')
-          .col-md-2.infokala-message-type-col(data-bind='visible: shouldShowMessageType()')
+          .col-md-2.col-sm-6.col-xs-9.infokala-message-type-col(data-bind='visible: shouldShowMessageType()')
             select.form-control(data-bind='options: visibleMessageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
-        input.hidden(type='submit')
+          .col-md-1.col-sm-6.col-xs-3
+            input.btn.btn-primary(type='submit', value='Luo')
         .row.infokala-new-message-warning(data-bind='visible: shouldShowNewMessageWarning')
           .col-md-1
           .col-md-11.text-muted Huomaathan, että uusi viestisi ei näy nykyisillä suodatinasetuksilla.
