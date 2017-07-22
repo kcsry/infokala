@@ -22,7 +22,7 @@ def formatted_time(dt):
 
 @python_2_unicode_compatible
 class Workflow(models.Model):
-    slug = models.CharField(verbose_name='tunniste', max_length=64, unique=True)
+    slug = models.CharField(verbose_name='tunniste', max_length=64, unique=True, db_index=True)
     name = models.CharField(verbose_name='nimi', max_length=128)
 
     class Meta:
