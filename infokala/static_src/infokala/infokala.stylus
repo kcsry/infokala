@@ -28,9 +28,6 @@
 .infokala-message-details
   display none
 
-// .infokala-author-col, .infokala-message-col-middle
-//  padding-right 0
-
 .infokala-inactive
   color #ccc
 
