@@ -1,5 +1,9 @@
 import { config } from './config_service';
 
+function getCSRFToken() {
+  return /csrftoken=([^&]+)/.exec(document.cookie)[1];
+}
+
 export function getJSON(path) {
   return fetch(config.apiUrl + path, {
     credentials: 'same-origin',
@@ -10,6 +14,9 @@ export function deleteJSON(path) {
   return fetch(config.apiUrl + path, {
     method: 'delete',
     credentials: 'same-origin',
+    headers: {
+      'X-CSRFToken': getCSRFToken(),
+    }
   }).then(response => response.json());
 }
 
@@ -19,6 +26,7 @@ export function postJSON(path, obj) {
     credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
+      'X-CSRFToken': getCSRFToken(),
     },
     body: JSON.stringify(obj),
   }).then(response => response.json());

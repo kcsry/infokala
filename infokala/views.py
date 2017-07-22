@@ -7,6 +7,7 @@ from itertools import chain
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
+from django.middleware.csrf import get_token
 from django.utils import six
 from django.utils.encoding import force_text
 from django.views.generic import View
