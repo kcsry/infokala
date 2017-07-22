@@ -7,9 +7,9 @@ from itertools import chain
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse
-from django.middleware.csrf import get_token
 from django.utils import six
 from django.utils.encoding import force_text
+from django.utils.timezone import now
 from django.views.generic import View
 
 from dateutil.parser import parse as parse_datetime
@@ -334,6 +334,9 @@ class MessageEventsView(ApiView):
 
         event = MessageComment(message=message, author=data['author'], comment=data['comment'])
         event.save()
+
+        message.updated_at = now()
+        message.save()
 
         return 200, event.as_dict()
 
