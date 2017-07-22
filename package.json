@@ -6,6 +6,7 @@
   "scripts": {
     "prepublish": "webpack",
     "start": "webpack",
+    "watch": "webpack --watch",
     "prettify": "prettier --single-quote --trailing-comma es5 --print-width 120 --write infokala/static_src/**/*.js"
   },
   "repository": {
