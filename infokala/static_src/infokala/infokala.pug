@@ -131,9 +131,9 @@ html
       form.infokala-message-form(data-bind='submit: sendMessage', role='form')
         .row
           .col-md-2.col-sm-3.infokala-author-col
-            input.form-control(data-bind='value: author')
+            input.form-control(data-bind='value: author', type='text', autocomplete='nickname', name='author')
           .infokala-message-col.col-sm-9(data-bind='css: { "col-md-7": shouldShowMessageType(), "col-md-9": !shouldShowMessageType(), "infokala-message-col-middle": shouldShowMessageType() }')
-            input.form-control(data-bind='value: message', placeholder='Viesti...')
+            input.form-control(data-bind='value: message', placeholder='Viesti...', type='text', autocomplete='off')
           .col-md-2.col-sm-6.col-xs-9.infokala-message-type-col(data-bind='visible: shouldShowMessageType()')
             select.form-control(data-bind='options: visibleMessageTypes, optionsText: "name", optionsValue: "slug", value: manualMessageType')
           .col-md-1.col-sm-6.col-xs-3
