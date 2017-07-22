@@ -349,7 +349,17 @@ class ConfigView(ApiView):
                 content_type='application/json',
             )
 
-        status, response = self._get(request, event, *args, **kwargs)
+        try:
+            status, response = self._get(request, event)
+        except ConfigurationError as e:
+            # In an error situation, return only the error message
+            return HttpResponse(
+                "window.infokalaConfig = {{'error': '{}'}};".format(str(e)),
+                status=200,  # This hurts, but <script> tags with non-200 statuses aren't handled ":D"
+                content_type='text/javascript'
+            )
+
+        # In a normal situation, the response payload is a dict to be JSONified
         return HttpResponse(
             "window.infokalaConfig = {};".format(json.dumps(response)),
             status=status,
@@ -359,6 +369,12 @@ class ConfigView(ApiView):
     def _get(self, request, event):
         message_types = MessageType.objects.filter(event_slug=event.slug)
         workflows = Workflow.objects.filter(message_type_set__event_slug=event.slug)
+
+        if len(message_types) < 1:
+            raise ConfigurationError('No message types specified, please configure them in the Django admin panel')
+
+        if len(workflows) < 1:
+            raise ConfigurationError('No workflows specified, please configure them in the Django admin panel')
 
         try:
             default_message_type = message_types.get(default=True)
@@ -380,3 +396,7 @@ class ConfigView(ApiView):
             apiUrl=reverse('infokala_messages_view', kwargs=dict(event_slug=event.slug)),
             logoutUrl=settings.LOGOUT_URL,
         )
+
+
+class ConfigurationError(Exception):
+    pass
