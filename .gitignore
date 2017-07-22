@@ -19,3 +19,4 @@ pip-log.txt
 src/
 tmp/
 virtualenv/
+npm-debug.log
