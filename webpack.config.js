@@ -70,7 +70,7 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.jsx?$/,
         exclude: /node_modules/,
         use: [
           'babel-loader',
@@ -100,7 +100,7 @@ module.exports = {
     ],
   },
   resolve: {
-    extensions: ['.webpack-loader.js', '.web-loader.js', '.loader.js', '.js'],
+    extensions: ['.js', '.jsx'],
     modules: [
       path.resolve(__dirname, 'node_modules'),
       sourcePath
