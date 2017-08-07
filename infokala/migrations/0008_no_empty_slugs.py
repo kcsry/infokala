@@ -13,11 +13,6 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AlterField(
-            model_name='state',
-            name='label_class',
-            field=models.CharField(blank=True, default='', max_length=32, verbose_name='label-luokka'),
-        ),
-        migrations.AlterField(
             model_name='workflow',
             name='slug',
             field=models.CharField(db_index=True, max_length=64, unique=True, verbose_name='tunniste'),

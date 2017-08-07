@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=128, verbose_name='nimi')),
                 ('slug', models.CharField(max_length=64, verbose_name='tunniste')),
                 ('active', models.BooleanField(default=True, verbose_name='aktiivinen')),
-                ('label_class', models.CharField(default=b'', max_length=32, verbose_name='label-luokka', blank=True)),
+                ('label_class', models.CharField(default='', max_length=32, verbose_name='label-luokka', blank=True)),
                 ('initial', models.BooleanField(default=False, help_text='T\xe4m\xe4 tila asetetaan uuden viestin tilaksi. Valitse kussakin ty\xf6nkulussa tasan yksi tila alkutilaksi.', verbose_name='alkutila')),
             ],
             options={
