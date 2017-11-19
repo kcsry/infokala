@@ -397,7 +397,7 @@ class ConfigView(ApiView):
                 username=request.user.username
             ),
             apiUrl=reverse('infokala_messages_view', kwargs=dict(event_slug=event.slug)),
-            logoutUrl=settings.LOGOUT_URL,
+            logoutUrl=getattr(settings, 'LOGOUT_URL', '/logout/'),
         )
 
 
