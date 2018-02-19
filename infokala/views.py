@@ -5,7 +5,7 @@ import logging
 from itertools import chain
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse
 from django.utils import six
 from django.utils.encoding import force_text
