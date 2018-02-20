@@ -1,6 +1,7 @@
 # encoding: utf-8
 from warnings import warn
 
+from django import VERSION
 from django.conf import settings
 from django.db import models
 from django.utils.six import python_2_unicode_compatible
@@ -10,6 +11,9 @@ from tzlocal import get_localzone
 
 TIME_FORMAT = '%H:%M:%S'
 TZLOCAL = get_localzone()
+
+if VERSION[:2] < (1, 10):
+    raise RuntimeError('This version of Lippukala craves Django 1.10+.')
 
 
 def formatted_time(dt):
