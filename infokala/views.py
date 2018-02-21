@@ -5,7 +5,7 @@ import logging
 from itertools import chain
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse
 from django.utils import six
 from django.utils.encoding import force_text
@@ -115,7 +115,7 @@ class ApiView(View):
         Override to perform access control. Return True to allow access or False to disallow.
         Default implementation only allows authenticated users.
         """
-        return request.user.is_authenticated()
+        return request.user.is_authenticated
 
     def get(self, request, event_slug, *args, **kwargs):
         event = settings.INFOKALA_GET_EVENT_OR_404(event_slug)

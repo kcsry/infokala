@@ -17,7 +17,7 @@ urlpatterns = [
         ensure_csrf_cookie(ConfigView.as_view()),
         name='infokala_config_view',
     ),
-    url(r'^admin/', include(admin.site.urls)),
+    url(r'^admin/', admin.site.urls),
     url(r'^api/v1/events/(?P<event_slug>[a-z0-9-]+)/messages/?$',
         ensure_csrf_cookie(MessagesView.as_view()),
         name='infokala_messages_view',

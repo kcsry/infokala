@@ -1,6 +1,7 @@
 # encoding: utf-8
 from warnings import warn
 
+from django import VERSION
 from django.conf import settings
 from django.db import models
 from django.utils.six import python_2_unicode_compatible
@@ -10,6 +11,9 @@ from tzlocal import get_localzone
 
 TIME_FORMAT = '%H:%M:%S'
 TZLOCAL = get_localzone()
+
+if VERSION[:2] < (1, 10):
+    raise RuntimeError('This version of Lippukala craves Django 1.10+.')
 
 
 def formatted_time(dt):
@@ -51,7 +55,7 @@ class Workflow(models.Model):
 
 @python_2_unicode_compatible
 class State(models.Model):
-    workflow = models.ForeignKey(Workflow, verbose_name='työnkulku', related_name='state_set')
+    workflow = models.ForeignKey(Workflow, verbose_name='työnkulku', related_name='state_set', on_delete=models.CASCADE)
     order = models.IntegerField(default=0, verbose_name='järjestys')
     name = models.CharField(verbose_name='nimi', max_length=128)
     slug = models.CharField(verbose_name='tunniste', max_length=64)
@@ -90,7 +94,7 @@ class MessageType(models.Model):
     event_slug = models.CharField(verbose_name='tapahtuman tunniste', max_length=64, db_index=True)
     name = models.CharField(verbose_name='nimi', max_length=128)
     slug = models.CharField(verbose_name='tunniste', max_length=64)
-    workflow = models.ForeignKey(Workflow, verbose_name='työnkulku', related_name='message_type_set')
+    workflow = models.ForeignKey(Workflow, verbose_name='työnkulku', related_name='message_type_set', on_delete=models.CASCADE)
     default = models.BooleanField(default=False, verbose_name='tapahtuman oletus')
     color = models.CharField(verbose_name='väri', max_length=32, help_text='CSS:n hyväksymä värimääritys')
 
@@ -119,11 +123,11 @@ class MessageType(models.Model):
 
 @python_2_unicode_compatible
 class Message(models.Model):
-    message_type = models.ForeignKey(MessageType, verbose_name='viestityyppi', related_name='message_set')
+    message_type = models.ForeignKey(MessageType, verbose_name='viestityyppi', related_name='message_set', on_delete=models.CASCADE)
     message = models.TextField(verbose_name='viesti')
     author = models.CharField(verbose_name='kirjoittaja', max_length=128)
 
-    state = models.ForeignKey(State)
+    state = models.ForeignKey(State, on_delete=models.CASCADE)
 
     created_by = models.ForeignKey(
         'auth.User',
@@ -131,6 +135,7 @@ class Message(models.Model):
         null=True,
         blank=True,
         related_name='+',
+        on_delete=models.CASCADE,
     )
     updated_by = models.ForeignKey(
         'auth.User',
@@ -138,6 +143,7 @@ class Message(models.Model):
         null=True,
         blank=True,
         related_name='+',
+        on_delete=models.CASCADE,
     )
     deleted_by = models.ForeignKey(
         'auth.User',
@@ -145,6 +151,7 @@ class Message(models.Model):
         null=True,
         blank=True,
         related_name='+',
+        on_delete=models.CASCADE,
     )
 
     event_slug = models.CharField(verbose_name='tapahtuman tunniste', max_length=64)
@@ -211,7 +218,7 @@ class Message(models.Model):
 
 class MessageEventBase(models.Model):
     """A MessageEventBase is either a state change event or a comment on a message."""
-    message = models.ForeignKey(Message, verbose_name='viesti', related_name='%(class)s_set')
+    message = models.ForeignKey(Message, verbose_name='viesti', related_name='%(class)s_set', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True, editable=False)
     author = models.CharField(verbose_name='muokkaaja', max_length=128)
 
@@ -232,8 +239,8 @@ class MessageEventBase(models.Model):
 
 
 class MessageStateChangeEvent(MessageEventBase):
-    old_state = models.ForeignKey(State, related_name='+')
-    new_state = models.ForeignKey(State, related_name='+')
+    old_state = models.ForeignKey(State, related_name='+', on_delete=models.CASCADE)
+    new_state = models.ForeignKey(State, related_name='+', on_delete=models.CASCADE)
 
     def as_dict(self):
         return dict(

@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='message',
             name='deleted_by',
-            field=models.ForeignKey(related_name='+', verbose_name='poistaja', blank=True, to=settings.AUTH_USER_MODEL, null=True),
+            field=models.ForeignKey(related_name='+', verbose_name='poistaja', blank=True, to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE),
             preserve_default=True,
         ),
     ]

@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('event_slug', models.CharField(max_length=64, verbose_name='tapahtuman tunniste')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='lis\xe4ysaika')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='muokkausaika')),
-                ('created_by', models.ForeignKey(related_name='+', verbose_name='lis\xe4\xe4j\xe4', blank=True, to=settings.AUTH_USER_MODEL, null=True)),
+                ('created_by', models.ForeignKey(related_name='+', verbose_name='lis\xe4\xe4j\xe4', blank=True, to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE)),
             ],
             options={
                 'verbose_name': 'viesti',
@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='state',
             name='workflow',
-            field=models.ForeignKey(related_name='state_set', verbose_name='ty\xf6nkulku', to='infokala.Workflow'),
+            field=models.ForeignKey(related_name='state_set', verbose_name='ty\xf6nkulku', to='infokala.Workflow', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -91,7 +91,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='messagetype',
             name='workflow',
-            field=models.ForeignKey(related_name='message_type_set', verbose_name='ty\xf6nkulku', to='infokala.Workflow'),
+            field=models.ForeignKey(related_name='message_type_set', verbose_name='ty\xf6nkulku', to='infokala.Workflow', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterUniqueTogether(
@@ -101,19 +101,19 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='message',
             name='message_type',
-            field=models.ForeignKey(related_name='message_set', verbose_name='viestityyppi', to='infokala.MessageType'),
+            field=models.ForeignKey(related_name='message_set', verbose_name='viestityyppi', to='infokala.MessageType', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='message',
             name='state',
-            field=models.ForeignKey(to='infokala.State'),
+            field=models.ForeignKey(to='infokala.State', on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='message',
             name='updated_by',
-            field=models.ForeignKey(related_name='+', verbose_name='viimeisin muokkaaja', blank=True, to=settings.AUTH_USER_MODEL, null=True),
+            field=models.ForeignKey(related_name='+', verbose_name='viimeisin muokkaaja', blank=True, to=settings.AUTH_USER_MODEL, null=True, on_delete=models.CASCADE),
             preserve_default=True,
         ),
         migrations.AlterIndexTogether(
