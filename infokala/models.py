@@ -130,7 +130,7 @@ class Message(models.Model):
     state = models.ForeignKey(State, on_delete=models.CASCADE)
 
     created_by = models.ForeignKey(
-        'auth.User',
+        settings.AUTH_USER_MODEL,
         verbose_name='lisääjä',
         null=True,
         blank=True,
@@ -138,7 +138,7 @@ class Message(models.Model):
         on_delete=models.CASCADE,
     )
     updated_by = models.ForeignKey(
-        'auth.User',
+        settings.AUTH_USER_MODEL,
         verbose_name='viimeisin muokkaaja',
         null=True,
         blank=True,
@@ -146,7 +146,7 @@ class Message(models.Model):
         on_delete=models.CASCADE,
     )
     deleted_by = models.ForeignKey(
-        'auth.User',
+        settings.AUTH_USER_MODEL,
         verbose_name='poistaja',
         null=True,
         blank=True,
