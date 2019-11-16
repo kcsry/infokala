@@ -1,10 +1,8 @@
-# encoding: utf-8
 from warnings import warn
 
 from django import VERSION
 from django.conf import settings
 from django.db import models
-from django.utils.six import python_2_unicode_compatible
 from django.utils.timezone import now
 
 from tzlocal import get_localzone
@@ -24,7 +22,6 @@ def formatted_time(dt):
     return dt.time().strftime(TIME_FORMAT)
 
 
-@python_2_unicode_compatible
 class Workflow(models.Model):
     slug = models.CharField(verbose_name='tunniste', max_length=64, unique=True, db_index=True)
     name = models.CharField(verbose_name='nimi', max_length=128)
@@ -53,7 +50,6 @@ class Workflow(models.Model):
         )
 
 
-@python_2_unicode_compatible
 class State(models.Model):
     workflow = models.ForeignKey(Workflow, verbose_name='työnkulku', related_name='state_set', on_delete=models.CASCADE)
     order = models.IntegerField(default=0, verbose_name='järjestys')
@@ -121,7 +117,6 @@ class MessageType(models.Model):
         )
 
 
-@python_2_unicode_compatible
 class Message(models.Model):
     message_type = models.ForeignKey(MessageType, verbose_name='viestityyppi', related_name='message_set', on_delete=models.CASCADE)
     message = models.TextField(verbose_name='viesti')

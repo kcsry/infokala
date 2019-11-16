@@ -1,13 +1,10 @@
-
-
 import json
 import logging
 from itertools import chain
 
 from django.conf import settings
-from django.urls import reverse
 from django.http import HttpResponse
-from django.utils import six
+from django.urls import reverse
 from django.utils.encoding import force_text
 from django.utils.timezone import now
 from django.views.generic import View
@@ -102,7 +99,7 @@ def validate(data_dict, *field_names):
     if missing_keys:
         raise RequiredFieldsMissing(*missing_keys)
 
-    type_mismatches = [key for (key, value) in six.iteritems(data_dict) if not isinstance(value, six.text_type)]
+    type_mismatches = [key for (key, value) in data_dict.items() if not isinstance(value, str)]
     if type_mismatches:
         raise FieldTypeMismatch(*type_mismatches)
 

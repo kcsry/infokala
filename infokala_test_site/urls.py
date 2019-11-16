@@ -1,11 +1,11 @@
 from django.conf.urls import include, url
 from django.contrib import admin
+from django.contrib.auth.decorators import login_required
+from django.contrib.staticfiles.views import serve
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.generic.base import RedirectView
-from django.contrib.staticfiles.views import serve
-from django.contrib.auth.decorators import login_required
 
-from infokala.views import MessagesView, MessageView, ConfigView, MessageEventsView
+from infokala.views import ConfigView, MessageEventsView, MessagesView, MessageView
 
 urlpatterns = [
     url(r'^$', RedirectView.as_view(url='/events/test/messages/', permanent=False)),
