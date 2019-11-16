@@ -1,5 +1,5 @@
 # -- coding: UTF-8 --
-from __future__ import unicode_literals
+
 
 from infokala.models import MessageType, State, Workflow
 
