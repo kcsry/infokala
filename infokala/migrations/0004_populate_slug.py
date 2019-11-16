@@ -6,13 +6,13 @@ from django.db import models, migrations
 
 
 SLUGIFY_CHAR_MAP = {
-  u'ä': u'a',
-  u'å': u'a',
-  u'ö': u'o',
-  u'ü': u'u',
-  u' ': u'-',
-  u'_': u'-',
-  u'.': u'-',
+  'ä': 'a',
+  'å': 'a',
+  'ö': 'o',
+  'ü': 'u',
+  ' ': '-',
+  '_': '-',
+  '.': '-',
 }
 SLUGIFY_FORBANNAD_RE = re.compile(r'[^a-z0-9-]', re.UNICODE)
 SLUGIFY_MULTIDASH_RE = re.compile(r'-+', re.UNICODE)
@@ -20,9 +20,9 @@ SLUGIFY_MULTIDASH_RE = re.compile(r'-+', re.UNICODE)
 
 def slugify(ustr):
     ustr = ustr.lower()
-    ustr = u''.join(SLUGIFY_CHAR_MAP.get(c, c) for c in ustr)
-    ustr = SLUGIFY_FORBANNAD_RE.sub(u'', ustr)
-    ustr = SLUGIFY_MULTIDASH_RE.sub(u'-', ustr)
+    ustr = ''.join(SLUGIFY_CHAR_MAP.get(c, c) for c in ustr)
+    ustr = SLUGIFY_FORBANNAD_RE.sub('', ustr)
+    ustr = SLUGIFY_MULTIDASH_RE.sub('-', ustr)
     return ustr
 
 

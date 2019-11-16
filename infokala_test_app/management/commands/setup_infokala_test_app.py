@@ -22,7 +22,7 @@ class Command(BaseCommand):
         event, unused = Event.objects.get_or_create(
             slug='test',
             defaults=dict(
-                name=u'Testitapahtuma',
+                name='Testitapahtuma',
             )
         )
 
@@ -32,8 +32,8 @@ class Command(BaseCommand):
         if not Message.objects.exists():
             message_type = MessageType.objects.get(event_slug=event.slug, slug='event')
             for author, example_message in [
-                (u'Korppu', u'INFOSSA ON CORGI :333333'),
-                (u'Japsu', u'apua, tuun sinne :3'),
+                ('Korppu', 'INFOSSA ON CORGI :333333'),
+                ('Japsu', 'apua, tuun sinne :3'),
             ]:
                 Message(
                     message_type=message_type,
