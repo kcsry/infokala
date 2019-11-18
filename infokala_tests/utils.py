@@ -30,7 +30,7 @@ def dd(event):  # dd is short for `default data` here.
 def get_data_from_response(response, status_code=200):
     if status_code:  # pragma: no branch
         assert response.status_code == status_code, (
-            "Status %s is not the expected %s" % (response.status_code, status_code)
+            "Status {} is not the expected {}".format(response.status_code, status_code)
         )
 
     data = json.loads(response.content.decode('utf-8'))

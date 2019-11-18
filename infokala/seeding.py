@@ -53,7 +53,7 @@ def create_default_workflows():
 
         order += 10
 
-    return dict((wf.slug, wf) for wf in Workflow.objects.all())
+    return {wf.slug: wf for wf in Workflow.objects.all()}
 
 
 def create_default_message_types(event_slug, workflows):
@@ -74,4 +74,4 @@ def create_default_message_types(event_slug, workflows):
     # make 'event' default
     message_type.default = True
     message_type.save()
-    return dict((mt.slug, mt) for mt in MessageType.objects.filter(event_slug=event_slug))
+    return {mt.slug: mt for mt in MessageType.objects.filter(event_slug=event_slug)}
