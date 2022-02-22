@@ -23,39 +23,25 @@ module.exports = function (env, argv) {
         {
           test: /\.js$/,
           exclude: /node_modules/,
-          use: [
-            'babel-loader',
-          ],
+          use: ['babel-loader'],
         },
         {
           test: /\.css$/,
-          use: [
-            'style-loader',
-            'css-loader',
-          ],
+          use: ['style-loader', 'css-loader'],
         },
         {
           test: /\.stylus/,
-          use: [
-            'style-loader',
-            'css-loader',
-            'stylus-loader',
-          ],
+          use: ['style-loader', 'css-loader', 'stylus-loader'],
         },
         {
           test: /\.(woff|ttf|eot|svg|png|jpeg)/,
-          use: [
-            'url-loader?name=[name].[hash:6].[ext]&limit=10000',
-          ],
+          use: ['url-loader?name=[name].[hash:6].[ext]&limit=10000'],
         },
       ],
     },
     resolve: {
       extensions: ['.webpack-loader.js', '.web-loader.js', '.loader.js', '.js'],
-      modules: [
-        path.resolve(__dirname, 'node_modules'),
-        sourcePath
-      ]
+      modules: [path.resolve(__dirname, 'node_modules'), sourcePath],
     },
     plugins: [
       new CopyWebpackPlugin({
@@ -65,10 +51,10 @@ module.exports = function (env, argv) {
             to: 'infokala.html',
             transform: (content, path) => {
               return pug.render(content, { compileDebug: !isProd }, path);
-            }
+            },
           },
-        ]
+        ],
       }),
     ],
   };
-}
+};

@@ -164,6 +164,7 @@ export default class MessageViewModel {
 
   // Confirm and delete the message.
   deleteMessage() {
+    // eslint-disable-next-line no-alert
     if (window.confirm('Haluatko varmasti poistaa viestin?')) {
       // eslint-disable-line no-alert
       deleteMessage(this.id).then((data) => {
@@ -188,7 +189,7 @@ export default class MessageViewModel {
   // Fetch and update the message events and comments.
   updateEvents() {
     return getMessageEvents(this.id).then((events) => {
-      const formattedEvents = events.map(e => formatEvent(e, this.messageType));
+      const formattedEvents = events.map((e) => formatEvent(e, this.messageType));
       return this.eventList(formattedEvents);
     });
   }

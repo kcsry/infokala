@@ -15,7 +15,7 @@ const replacements = {
 
 // Utility: Escape HTML.
 export function escapeHtml(str) {
-  return String(str).replace(/[&<>"'/]/g, s => replacements[s]);
+  return String(str).replace(/[&<>"'/]/g, (s) => replacements[s]);
 }
 
 // Formats an event structure to a form with a human-readable text and presentation metadata

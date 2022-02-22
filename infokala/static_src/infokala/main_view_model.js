@@ -35,7 +35,7 @@ export default class MainViewModel {
 
     // Exclude internal message types starting with an underscore
     // An underscore is not valid in a message type slug, so this should never hit legitimate message typess
-    this.visibleMessageTypes = config.messageTypes.filter(c => !c.slug.startsWith('_'));
+    this.visibleMessageTypes = config.messageTypes.filter((c) => !c.slug.startsWith('_'));
 
     // Generate stylesheet for message types
     const styleText = config.messageTypes
@@ -92,12 +92,12 @@ export default class MainViewModel {
           name: 'Kaikki',
           slug: null,
         },
-      ].concat(config.messageTypes.filter(mt => !mt.internal))
+      ].concat(config.messageTypes.filter((mt) => !mt.internal))
     );
 
     // Special objects used as special filters
     this.filterAll = { name: 'Kaikki', slug: '_all', fn: () => true };
-    this.filterActive = { name: 'Aktiiviset', slug: '_active', fn: m => m.state().active };
+    this.filterActive = { name: 'Aktiiviset', slug: '_active', fn: (m) => m.state().active };
     this.messageStateSpecialFilters = ko.observable([this.filterAll, this.filterActive]);
     this.messageStateFilters = ko.observableArray([]);
 
@@ -128,7 +128,9 @@ export default class MainViewModel {
   refresh() {
     if (this.latestMessageTimestamp) {
       // TODO: This could be grouped into a single request instead of one for every open message
-      this.messages().filter(m => m.isMessageOpen()).forEach(m => m.updateEvents());
+      this.messages()
+        .filter((m) => m.isMessageOpen())
+        .forEach((m) => m.updateEvents());
       return getMessagesSince(this.latestMessageTimestamp).then(this.updateMessages);
     }
     return getAllMessages().then(this.updateMessages);
@@ -225,7 +227,7 @@ export default class MainViewModel {
         }
       }
 
-      const foundState = find(findIn, s => s.slug === state);
+      const foundState = find(findIn, (s) => s.slug === state);
       if (foundState) {
         filter.state = foundState;
       }
@@ -313,7 +315,7 @@ export default class MainViewModel {
     this.visibleMessages.splice(
       0,
       this.visibleMessages().length,
-      ...this.messages().filter(m => m.matchesFilter(newFilter))
+      ...this.messages().filter((m) => m.matchesFilter(newFilter))
     );
     this.addDayChangeMessages();
   }

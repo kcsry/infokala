@@ -7,7 +7,7 @@ function getCSRFToken() {
 export function getJSON(path) {
   return fetch(config.apiUrl + path, {
     credentials: 'same-origin',
-  }).then(response => response.json());
+  }).then((response) => response.json());
 }
 
 export function deleteJSON(path) {
@@ -16,8 +16,8 @@ export function deleteJSON(path) {
     credentials: 'same-origin',
     headers: {
       'X-CSRFToken': getCSRFToken(),
-    }
-  }).then(response => response.json());
+    },
+  }).then((response) => response.json());
 }
 
 export function postJSON(path, obj) {
@@ -29,7 +29,7 @@ export function postJSON(path, obj) {
       'X-CSRFToken': getCSRFToken(),
     },
     body: JSON.stringify(obj),
-  }).then(response => response.json());
+  }).then((response) => response.json());
 }
 
 export function enrichMessage(message) {
