@@ -1,16 +1,8 @@
 {
-  "extends": "airbnb-base",
-  "env": {"browser": true},
+  "extends": ["airbnb-base", "prettier"],
+  "env": { "browser": true },
   "rules": {
-    "max-len": ["error", 120],
     "no-restricted-syntax": ["error"],
-    "no-underscore-dangle": 0,
-    "comma-dangle": ["error", {
-      "arrays": "always-multiline",
-      "objects": "always-multiline",
-      "imports": "always-multiline",
-      "exports": "always-multiline",
-      "functions": "ignore"
-    }]
+    "no-underscore-dangle": 0
   }
 }
