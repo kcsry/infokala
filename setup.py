@@ -13,5 +13,5 @@ setup(
     package_data={'infokala': ['static/infokala/*']},
     include_package_data=True,
     zip_safe=False,
-    install_requires=['Django>=1.7', 'python-dateutil>=2.6', 'tzlocal'],
+    install_requires=['Django>=2.0', 'python-dateutil>=2.6', 'tzlocal'],
 )
