@@ -15,8 +15,9 @@ htmlcov
 infokala/static/infokala/*
 node_modules/
 nohup.out
+npm-debug.log
 pip-log.txt
 src/
 tmp/
 virtualenv/
-npm-debug.log
+yarn.lock
