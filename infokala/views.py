@@ -5,6 +5,7 @@ from itertools import chain
 from django.conf import settings
 from django.http import HttpResponse
 from django.urls import reverse
+from django.utils.encoding import force_text
 from django.utils.timezone import now
 from django.views.generic import View
 
@@ -141,7 +142,7 @@ class ApiView(View):
             )
 
         try:
-            data = json.loads(str(request.body))
+            data = json.loads(force_text(request.body))
         except ValueError:
             return HttpResponse(
                 json.dumps(dict(JSON_BAD_REQUEST, reason='document body is not valid JSON')),
