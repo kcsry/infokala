@@ -44,6 +44,9 @@ DATABASES = {
     }
 }
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
+
 LANGUAGE_CODE = 'fi-fi'
 TIME_ZONE = 'Europe/Helsinki'
 USE_I18N = True
@@ -62,8 +65,12 @@ TEMPLATES = [
         'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
-            'context_processors': ['django.contrib.auth.context_processors.auth'],
-            'debug': DEBUG
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.request',
+                'django.contrib.messages.context_processors.messages',
+            ],
+            'debug': DEBUG,
         },
     },
 ]
