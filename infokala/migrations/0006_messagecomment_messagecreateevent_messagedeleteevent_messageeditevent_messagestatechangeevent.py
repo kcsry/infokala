@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('author', models.CharField(max_length=128, verbose_name='muokkaaja')),
                 ('comment', models.TextField(verbose_name='kommentti')),
-                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messagecomment_set', to='infokala.Message', verbose_name='viesti')),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to='infokala.Message', verbose_name='viesti')),
             ],
             options={
                 'ordering': ['-created_at'],
@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('author', models.CharField(max_length=128, verbose_name='muokkaaja')),
                 ('text', models.TextField(verbose_name='viesti')),
-                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messagecreateevent_set', to='infokala.Message', verbose_name='viesti')),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to='infokala.Message', verbose_name='viesti')),
             ],
             options={
                 'ordering': ['-created_at'],
@@ -47,7 +47,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('author', models.CharField(max_length=128, verbose_name='muokkaaja')),
-                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messagedeleteevent_set', to='infokala.Message', verbose_name='viesti')),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to='infokala.Message', verbose_name='viesti')),
             ],
             options={
                 'ordering': ['-created_at'],
@@ -61,7 +61,7 @@ class Migration(migrations.Migration):
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('author', models.CharField(max_length=128, verbose_name='muokkaaja')),
                 ('text', models.TextField(verbose_name='viesti')),
-                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messageeditevent_set', to='infokala.Message', verbose_name='viesti')),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to='infokala.Message', verbose_name='viesti')),
             ],
             options={
                 'ordering': ['-created_at'],
@@ -74,7 +74,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('author', models.CharField(max_length=128, verbose_name='muokkaaja')),
-                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messagestatechangeevent_set', to='infokala.Message', verbose_name='viesti')),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_set', to='infokala.Message', verbose_name='viesti')),
                 ('new_state', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='infokala.State')),
                 ('old_state', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='infokala.State')),
             ],
