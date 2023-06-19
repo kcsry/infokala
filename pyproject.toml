@@ -1,7 +1,56 @@
 [build-system]
-requires = [
-    "setuptools>=42",
-    "wheel"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "infokala"
+dynamic = ["version"]
+requires-python = ">=3.6"
+description = "Info log management system for Desucon and Tracon"
+readme = "README.md"
+license = ""
+authors = [
+    { name = "Santtu Pajukanta", email = "japsu@desucon.fi" },
 ]
-build-backend = "setuptools.build_meta"
-# TODO: it would be nice to automatically run static builds here
+dependencies = [
+    "Django>=2.0",
+    "python-dateutil>=2.6",
+    "tzlocal",
+]
+
+[project.urls]
+Homepage = "https://github.com/kcsry/infokala"
+
+[tool.hatch.version]
+path = "infokala/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/infokala",
+]
+
+[tool.hatch.build]
+artifacts = [
+    "infokala/static",
+]
+
+[tool.ruff]
+ignore = [
+    "E501",
+]
+line-length = 120
+select = [
+    "C9",
+    "E",
+    "F",
+    "W",
+    "I",
+]
+
+[tool.ruff.mccabe]
+max-complexity = 10
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "infokala_test_site.settings"
+norecursedirs = [".git", "venv*", "site-packages"]
+doctest_optionflags = ["NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ALLOW_UNICODE"]
