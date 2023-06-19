@@ -56,3 +56,10 @@ max-complexity = 10
 DJANGO_SETTINGS_MODULE = "infokala_test_site.settings"
 norecursedirs = [".git", "venv*", "site-packages"]
 doctest_optionflags = ["NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ALLOW_UNICODE"]
+filterwarnings = [
+    "error",
+    # See https://github.com/django/django/pull/15703#issuecomment-1155487846
+    # – the `index_together` option lives on in the migrations, even if we're actually
+    #   using `indexes` in the model definition.
+    "once:'index_together' is deprecated.*",
+]
