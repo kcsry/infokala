@@ -14,22 +14,25 @@ jobs:
         include:
           - python-version: '3.11'
     steps:
+      - uses: actions/checkout@v3
       - name: 'Set up Python ${{ matrix.python-version }}'
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '${{ matrix.python-version }}'
-      - uses: actions/checkout@v2
+          cache: pip
       - run: pip install -U pip
       - run: pip install tox-gh-actions tox
       - run: tox
-      - uses: codecov/codecov-action@v2
+      - uses: codecov/codecov-action@v3
   Lint-Frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 16
-      - uses: actions/checkout@v2
+          cache: npm
+          cache-dependency-path: package.json
       - run: npm i --ignore-scripts
       - run: npm run lint
   Build-Wheel:
@@ -38,17 +41,20 @@ jobs:
       - Lint-Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - uses: actions/setup-node@v2
+          cache: pip
+      - uses: actions/setup-node@v3
         with:
           node-version: 16
-      - uses: actions/checkout@v2
+          cache: npm
+          cache-dependency-path: package.json
       - run: pip install build
       - run: npm i
       - run: python -m build .
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: dist
           path: dist
