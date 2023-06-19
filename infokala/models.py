@@ -37,7 +37,7 @@ class Workflow(models.Model):
         try:
             return self.state_set.get(initial=True)
         except (State.DoesNotExist, State.MultipleObjectsReturned):
-            warn('Workflow "{name}" does not have a unique initial state'.format(name=self.name))
+            warn(f'Workflow "{self.name}" does not have a unique initial state')
             return self.state_set.order_by('order').first()
 
     def as_dict(self):
@@ -178,7 +178,7 @@ class Message(models.Model):
         if not self.author and self.user_id:
             self.author = self.user.username
 
-        return super(Message, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     @property
     def formatted_time(self):
