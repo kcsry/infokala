@@ -67,8 +67,8 @@ class State(models.Model):
         verbose_name = 'Tila'
         verbose_name_plural = 'Tilat'
         ordering = ('workflow', 'order')
-        index_together = [
-            ('workflow', 'order'),
+        indexes = [
+            models.Index(fields=['workflow', 'order']),
         ]
         unique_together = [
             ('workflow', 'slug'),
@@ -162,8 +162,8 @@ class Message(models.Model):
     class Meta:
         verbose_name = 'viesti'
         verbose_name_plural = 'viestit'
-        index_together = [
-            ('event_slug', 'created_at'),
+        indexes = [
+            models.Index(fields=['event_slug', 'created_at']),
         ]
 
     def __str__(self):
