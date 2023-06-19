@@ -13,9 +13,9 @@ authors = [
     { name = "Santtu Pajukanta", email = "japsu@desucon.fi" },
 ]
 dependencies = [
-    "Django>=2.0",
+    "Django>=4.1",
     "python-dateutil>=2.6",
-    "tzlocal",
+    "tzlocal>=5.0",
 ]
 
 [project.urls]
