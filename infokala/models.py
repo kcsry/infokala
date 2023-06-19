@@ -4,7 +4,6 @@ from django import VERSION
 from django.conf import settings
 from django.db import models
 from django.utils.timezone import now
-
 from tzlocal import get_localzone
 
 TIME_FORMAT = '%H:%M:%S'
@@ -17,7 +16,7 @@ if VERSION[:2] < (1, 10):
 def formatted_time(dt):
     try:
         dt = dt.astimezone(TZLOCAL)
-    except ValueError as ve:  # TODO: fix me
+    except ValueError:  # TODO: fix me
         dt = dt
     return dt.time().strftime(TIME_FORMAT)
 

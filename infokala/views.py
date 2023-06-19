@@ -2,6 +2,7 @@ import json
 import logging
 from itertools import chain
 
+from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.http import HttpResponse
 from django.urls import reverse
@@ -9,10 +10,14 @@ from django.utils.encoding import force_str
 from django.utils.timezone import now
 from django.views.generic import View
 
-from dateutil.parser import parse as parse_datetime
-
 from .models import (
-    Message, MessageComment, MessageCreateEvent, MessageEditEvent, MessageStateChangeEvent, MessageType, Workflow
+    Message,
+    MessageComment,
+    MessageCreateEvent,
+    MessageEditEvent,
+    MessageStateChangeEvent,
+    MessageType,
+    Workflow,
 )
 
 JSON_FORBIDDEN = dict(

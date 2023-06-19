@@ -1,9 +1,8 @@
 import json
 from random import choice
 
-from django.utils.text import slugify
-
 import pytest
+from django.utils.text import slugify
 
 from infokala.seeding import create_default_message_types, create_default_workflows
 from infokala_test_app.models import Event

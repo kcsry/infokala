@@ -78,6 +78,7 @@ TEMPLATES = [
 
 def get_event(slug):
     from django.shortcuts import get_object_or_404
+
     from infokala_test_app.models import Event
     return get_object_or_404(Event, slug=slug)
 
