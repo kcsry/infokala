@@ -18,7 +18,7 @@ Assuming you have Python 3.9+, `pip` and `virtualenv` installed.
 
 ## Frontend development
 
-Frontend development tools require Node.JS (0.10.x). These are needed only during development, not runtime.
+Frontend development tools require Node.JS (16.x+). These are needed only during development, not runtime.
 
     npm install
     npm start
