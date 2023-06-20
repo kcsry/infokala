@@ -2,7 +2,7 @@
 
 ## Getting started
 
-Assuming you have Python 3.6+, `pip` and `virtualenv` installed.
+Assuming you have Python 3.9+, `pip` and `virtualenv` installed.
 
     git clone git@github.com:japsu/infokala
     virtualenv venv-infokala

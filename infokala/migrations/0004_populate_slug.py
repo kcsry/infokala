@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 
 
 import re
-from django.db import models, migrations
 
+from django.db import migrations
 
 SLUGIFY_CHAR_MAP = {
   'ä': 'a',

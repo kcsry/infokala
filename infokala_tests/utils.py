@@ -1,9 +1,8 @@
 import json
 from random import choice
 
-from django.utils.text import slugify
-
 import pytest
+from django.utils.text import slugify
 
 from infokala.seeding import create_default_message_types, create_default_workflows
 from infokala_test_app.models import Event
@@ -30,7 +29,7 @@ def dd(event):  # dd is short for `default data` here.
 def get_data_from_response(response, status_code=200):
     if status_code:  # pragma: no branch
         assert response.status_code == status_code, (
-            "Status {} is not the expected {}".format(response.status_code, status_code)
+            f"Status {response.status_code} is not the expected {status_code}"
         )
 
     data = json.loads(response.content.decode('utf-8'))

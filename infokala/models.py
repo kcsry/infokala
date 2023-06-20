@@ -4,7 +4,6 @@ from django import VERSION
 from django.conf import settings
 from django.db import models
 from django.utils.timezone import now
-
 from tzlocal import get_localzone
 
 TIME_FORMAT = '%H:%M:%S'
@@ -17,7 +16,7 @@ if VERSION[:2] < (1, 10):
 def formatted_time(dt):
     try:
         dt = dt.astimezone(TZLOCAL)
-    except ValueError as ve:  # TODO: fix me
+    except ValueError:  # TODO: fix me
         dt = dt
     return dt.time().strftime(TIME_FORMAT)
 
@@ -38,7 +37,7 @@ class Workflow(models.Model):
         try:
             return self.state_set.get(initial=True)
         except (State.DoesNotExist, State.MultipleObjectsReturned):
-            warn('Workflow "{name}" does not have a unique initial state'.format(name=self.name))
+            warn(f'Workflow "{self.name}" does not have a unique initial state')
             return self.state_set.order_by('order').first()
 
     def as_dict(self):
@@ -67,8 +66,8 @@ class State(models.Model):
         verbose_name = 'Tila'
         verbose_name_plural = 'Tilat'
         ordering = ('workflow', 'order')
-        index_together = [
-            ('workflow', 'order'),
+        indexes = [
+            models.Index(fields=['workflow', 'order']),
         ]
         unique_together = [
             ('workflow', 'slug'),
@@ -162,8 +161,8 @@ class Message(models.Model):
     class Meta:
         verbose_name = 'viesti'
         verbose_name_plural = 'viestit'
-        index_together = [
-            ('event_slug', 'created_at'),
+        indexes = [
+            models.Index(fields=['event_slug', 'created_at']),
         ]
 
     def __str__(self):
@@ -179,7 +178,7 @@ class Message(models.Model):
         if not self.author and self.user_id:
             self.author = self.user.username
 
-        return super(Message, self).save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     @property
     def formatted_time(self):

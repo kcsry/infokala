@@ -2,6 +2,7 @@ import json
 import logging
 from itertools import chain
 
+from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.http import HttpResponse
 from django.urls import reverse
@@ -9,10 +10,14 @@ from django.utils.encoding import force_str
 from django.utils.timezone import now
 from django.views.generic import View
 
-from dateutil.parser import parse as parse_datetime
-
 from .models import (
-    Message, MessageComment, MessageCreateEvent, MessageEditEvent, MessageStateChangeEvent, MessageType, Workflow
+    Message,
+    MessageComment,
+    MessageCreateEvent,
+    MessageEditEvent,
+    MessageStateChangeEvent,
+    MessageType,
+    Workflow,
 )
 
 JSON_FORBIDDEN = dict(
@@ -38,7 +43,7 @@ class ValidationError(ValueError):
     msg_template = '{}'
 
     def __init__(self, *args):
-        super(ValidationError, self).__init__(*args)
+        super().__init__(*args)
         self.msg = self.msg_template.format(args)
 
     def as_dict(self):
@@ -354,14 +359,14 @@ class ConfigView(ApiView):
         except ConfigurationError as e:
             # In an error situation, return only the error message
             return HttpResponse(
-                "window.infokalaConfig = {{'error': '{}'}};".format(str(e)),
+                f"window.infokalaConfig = {{'error': {json.dumps(str(e))}}};",
                 status=200,  # This hurts, but <script> tags with non-200 statuses aren't handled ":D"
                 content_type='text/javascript'
             )
 
         # In a normal situation, the response payload is a dict to be JSONified
         return HttpResponse(
-            "window.infokalaConfig = {};".format(json.dumps(response)),
+            f"window.infokalaConfig = {json.dumps(response)};",
             status=status,
             content_type='text/javascript',
         )
