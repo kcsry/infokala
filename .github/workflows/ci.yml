@@ -52,8 +52,12 @@ jobs:
           cache: npm
           cache-dependency-path: package.json
       - run: pip install build
-      - run: npm i
+      - run: npm i --ignore-scripts
+      - run: npm start
+        env:
+          NODE_ENV: production
       - run: python -m build .
+      - run: zipinfo dist/*.whl | grep static/infokala/infokala.js || exit 42
       - uses: actions/upload-artifact@v3
         with:
           name: dist
