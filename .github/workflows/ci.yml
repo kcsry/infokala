@@ -11,28 +11,21 @@ name: CI
 jobs:
   Test-Python:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - python-version: '3.11'
     steps:
-      - uses: actions/checkout@v3
-      - name: 'Set up Python ${{ matrix.python-version }}'
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: '${{ matrix.python-version }}'
-          cache: pip
-      - run: pip install -U pip
-      - run: pip install tox-gh-actions tox
+          python-version: 3.13
+      - run: uv pip install tox-gh-actions tox tox-uv
       - run: tox
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v5
   Lint-Frontend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 22
           cache: npm
           cache-dependency-path: package.json
       - run: npm i --ignore-scripts
@@ -43,24 +36,22 @@ jobs:
       - Lint-Frontend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.11'
-          cache: pip
-      - uses: actions/setup-node@v3
+          python-version: 3.13
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 22
           cache: npm
           cache-dependency-path: package.json
-      - run: pip install build
       - run: npm i --ignore-scripts
       - run: npm start
         env:
           NODE_ENV: production
-      - run: python -m build .
+      - run: uv build .
       - run: zipinfo dist/*.whl | grep static/infokala/infokala.js || exit 42
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist
