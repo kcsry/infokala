@@ -8,7 +8,7 @@ dynamic = ["version"]
 requires-python = ">=3.9"
 description = "Info log management system for Desucon and Tracon"
 readme = "README.md"
-license = ""
+license = "MIT"
 authors = [
     { name = "Santtu Pajukanta", email = "japsu@desucon.fi" },
 ]
